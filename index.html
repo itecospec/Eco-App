@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2d6a2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ecospec Survey">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Ecospec Site Survey</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f7f0;
+    padding: 1rem 1rem 4rem;
+    color: #1a1a2e;
+  }
+
+  /* ── Install Banner ── */
+  #install-banner {
+    display: none;
+    background: #2d6a2d;
+    color: #fff;
+    padding: .75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+  }
+  #install-banner p { font-size: 13px; flex: 1; }
+  #install-banner button {
+    background: #fff;
+    color: #2d6a2d;
+    border: none;
+    border-radius: 8px;
+    padding: .45rem .9rem;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #install-dismiss {
+    background: transparent !important;
+    color: #fff !important;
+    font-size: 18px !important;
+    padding: 0 .4rem !important;
+  }
+
+  /* ── Header ── */
+  .top-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: .5rem;
+    padding: 1rem 0;
+  }
+  .top-header img { height: 56px; max-width: 240px; object-fit: contain; }
+
+  h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #4a8c4a;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Sections ── */
+  .section {
+    background: #fff;
+    border: 1px solid #c8e0c8;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1rem;
+    user-select: none;
+    background: #f0f7f0;
+    border-bottom: 1px solid #c8e0c8;
+  }
+  .section-header h2 { font-size: 15px; font-weight: 600; color: #2d6a2d; }
+  .section-body { padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
+
+  /* ── Fields ── */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 13px; color: #4a8c4a; font-weight: 500; }
+  .field input,
+  .field textarea,
+  .field select {
+    width: 100%;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid #a8d0a8;
+    border-radius: 8px;
+    background: #fff;
+    color: #1a1a2e;
+    font-family: Arial, sans-serif;
+  }
+  .field input:focus,
+  .field textarea:focus,
+  .field select:focus { outline: none; border-color: #2d6a2d; }
+  .field textarea { resize: vertical; min-height: 62px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+
+  .checkrow { display: flex; flex-wrap: wrap; gap: .75rem 1rem; padding: 4px 0; }
+  .checkrow label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #1a1a2e; cursor: pointer; }
+  .checkrow input { width: auto; }
+
+  .subsection-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2d6a2d;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: 6px 0 2px;
+    border-bottom: 1px solid #c8e0c8;
+    margin-bottom: 2px;
+  }
+
+  /* ── Area cards ── */
+  .area-card {
+    border: 1px solid #c8e0c8;
+    border-radius: 10px;
+    background: #f8fff8;
+    overflow: hidden;
+    margin-bottom: .75rem;
+  }
+  .area-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2d6a2d;
+    background: #e8f5e8;
+    padding: .7rem .85rem;
+    border-bottom: 1px solid #c8e0c8;
+  }
+  .area-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    padding: .85rem;
+  }
+  .area-fields .field.notes { grid-column: 1 / -1; }
+
+  /* ── Photo upload ── */
+  .photo-upload {
+    border: 2px dashed #a8d0a8;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    background: #f8fff8;
+    transition: border-color .15s, background .15s;
+  }
+  .photo-upload:hover { border-color: #2d6a2d; background: #f0f7f0; }
+  .photo-upload input { display: none; }
+  .photo-upload p { font-size: 13px; color: #4a8c4a; margin: 0; }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .photo-thumb {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    background: #f0f7f0;
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-thumb .remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(180, 0, 0, .75);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo-thumb .fname {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0, 0, 0, .45);
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Buttons ── */
+  .submit-btn {
+    width: 100%;
+    padding: .85rem;
+    background: #2d6a2d;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1rem;
+    position: sticky;
+    bottom: 1rem;
+    box-shadow: 0 4px 16px rgba(45, 106, 45, .25);
+    z-index: 10;
+    transition: background .15s, opacity .15s;
+  }
+  .submit-btn:hover { background: #235223; }
+  .submit-btn:active { opacity: .85; }
+  .submit-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+  .inline-btn {
+    width: 100%;
+    padding: .85rem;
+    background: #2d6a2d;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .inline-btn:hover { background: #235223; }
+
+  .generating {
+    text-align: center;
+    font-size: 13px;
+    color: #4a8c4a;
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* ── Offline indicator ── */
+  #offline-badge {
+    display: none;
+    position: fixed;
+    top: 8px; right: 8px;
+    background: #c62828;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    z-index: 9999;
+    pointer-events: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 650px) {
+    .row2 { grid-template-columns: 1fr; }
+    .area-fields { grid-template-columns: 1fr; }
+    .photo-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Offline badge -->
+<div id="offline-badge">⚡ Offline</div>
+
+<!-- Install banner -->
+<div id="install-banner">
+  <p>📲 Add Ecospec Survey to your home screen for offline use</p>
+  <button id="install-btn">Install</button>
+  <button id="install-dismiss" class="install-dismiss">✕</button>
+</div>
+
+<div class="top-header">
+  <img id="logo_img" alt="Ecospec Logo">
+</div>
+<h1>Site Survey</h1>
+
+<div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:1rem;gap:8px">
+  <label style="font-size:13px;font-weight:600;color:#2d6a2d;white-space:nowrap">Survey No.</label>
+  <input type="text" id="survey_no" placeholder="e.g. ECO-001"
+    style="width:145px;font-size:14px;padding:7px 10px;border:1px solid #a8d0a8;border-radius:8px;background:#fff;color:#1a1a2e;font-family:Arial,sans-serif">
+</div>
+
+<!-- ── Survey Details ── -->
+<div class="section">
+  <div class="section-header"><h2>Survey Details</h2></div>
+  <div class="section-body">
+    <div class="row2">
+      <div class="field"><label>Surveyor Name</label><input type="text" id="surveyor" placeholder="Surveyor name"></div>
+      <div class="field"><label>Date</label><input type="date" id="date"></div>
+    </div>
+    <div class="subsection-label">Client Details</div>
+    <div class="field"><label>Client Name</label><input type="text" id="client_name" placeholder="Client Name"></div>
+    <div class="field"><label>Client Address</label><input type="text" id="client_address" placeholder="Client Address"></div>
+    <div class="field"><label>Client Number</label><input type="tel" id="client_number" placeholder="Client phone number"></div>
+    <div class="subsection-label">Customer / Site Details</div>
+    <div class="field"><label>Customer Name</label><input type="text" id="customer_name" placeholder="Customer Name"></div>
+    <div class="field"><label>Customer / Site Address</label><input type="text" id="customer_address" placeholder="Full site address"></div>
+    <div class="row2">
+      <div class="field"><label>Eircode</label><input type="text" id="eircode" placeholder="Eircode"></div>
+      <div class="field"><label>Pin Drop Link</label><input type="url" id="pin_drop" placeholder="Paste Google Maps link here"></div>
+    </div>
+    <button type="button" onclick="openPinDrop()" class="inline-btn">📍 Open Pin Drop</button>
+    <div class="row2">
+      <div class="field"><label>Customer Number</label><input type="tel" id="customer_number" placeholder="Customer phone number"></div>
+      <div class="field"><label>Email</label><input type="email" id="email" placeholder="Email address"></div>
+    </div>
+    <div id="photos_survey"></div>
+  </div>
+</div>
+
+<!-- ── 1. Project Type ── -->
+<div class="section">
+  <div class="section-header"><h2>1. Project Type</h2></div>
+  <div class="section-body">
+    <div class="field">
+      <label>Project Type</label>
+      <div class="checkrow">
+        <label><input type="radio" name="project_type" value="New Build"> New Build</label>
+        <label><input type="radio" name="project_type" value="Retrofit / Existing Building"> Retrofit / Existing Building</label>
+        <label><input type="radio" name="project_type" value="Commercial"> Commercial</label>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Building Type</label>
+        <select id="construction">
+          <option value="">Select...</option>
+          <option>Bungalow</option>
+          <option>Detached</option>
+          <option>Semi Detached</option>
+          <option>Commercial</option>
+          <option>Apartment</option>
+          <option>Garage</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Other Building Type</label><input type="text" id="construction_other" placeholder="Specify if other"></div>
+    </div>
+    <div class="field"><label>Year Built</label><input type="text" id="year_built" placeholder="For retrofit / existing buildings"></div>
+    <div id="photos_project"></div>
+  </div>
+</div>
+
+<!-- ── 2. Areas to Insulate ── -->
+<div class="section">
+  <div class="section-header"><h2>2. Areas to Insulate</h2></div>
+  <div class="section-body">
+
+    <div class="subsection-label">Roof Insulation</div>
+    <div class="field">
+      <label>Vent Card</label>
+      <div class="checkrow">
+        <label><input type="checkbox" id="ventcard_400"> 400's</label>
+        <label><input type="checkbox" id="ventcard_600"> 600's</label>
+      </div>
+    </div>
+    <div id="roofContainer"></div>
+    <button type="button" onclick="addInsulationArea('roof')" class="inline-btn">+ Add Roof Area</button>
+    <div id="photos_roof"></div>
+
+    <div class="subsection-label">Cavity Wall Insulation</div>
+    <div id="cavityContainer"></div>
+    <button type="button" onclick="addInsulationArea('cavity')" class="inline-btn">+ Add Cavity Wall Area</button>
+    <div id="photos_cavity"></div>
+
+    <div class="subsection-label">Airtightness</div>
+    <div class="area-card">
+      <h3>Airtightness</h3>
+      <div class="area-fields">
+        <div class="field"><label>Windows – Linear Metres</label><input type="text" id="air_windows_lm"></div>
+        <div class="field"><label>Veluxes</label><input type="text" id="air_veluxes"></div>
+        <div class="field"><label>Membrane System – SQM</label><input type="text" id="air_membrane_sqm"></div>
+        <div class="field"><label>Materials Required / Brand</label><input type="text" id="air_materials_brand"></div>
+        <div class="field notes"><label>Notes</label><textarea id="air_notes"></textarea></div>
+      </div>
+    </div>
+    <div id="photos_airtightness"></div>
+
+    <div class="subsection-label"
+     style="color:#ffffff;background:#c62828;padding:10px;border-radius:6px;margin-bottom:10px;">
+  Grant Spec
+</div>
+
+<div class="area-card"
+     style="border:2px solid #c62828;background:#fff5f5;">
+  <h3 style="background:#c62828;color:#fff;">
+    Grant Spec
+  </h3>
+      <div class="area-fields">
+        <div class="field">
+          <label>Pipes to be wrapped</label>
+          <div class="checkrow"><label><input type="checkbox" id="grant_pipes_wrapped"> Yes</label></div>
+        </div>
+        <div class="field">
+          <label>Hooks and eyes required</label>
+          <div class="checkrow"><label><input type="checkbox" id="grant_hooks_eyes"> Yes</label></div>
+        </div>
+	<div class="field">
+          <label>Draughtproofing required</label>
+          <div class="checkrow"><label><input type="checkbox" id="draughtproof"> Yes</label></div>
+        </div>
+        <div class="field"><label>Walkway to put down – SQM</label><input type="text" id="grant_walkway_sqm"></div>
+        <div class="field"><label>Tanks to wrap – QTY</label><input type="text" id="grant_tanks_qty"></div>
+        <div class="field"><label>Hatch solution</label><input type="text" id="grant_hatch"></div>
+        <div class="field"><label>Are vents required?</label><input type="text" id="grant_vents_required"></div>
+      </div>
+    </div>
+    <div id="photos_grant"></div>
+
+  </div>
+</div>
+
+<!-- ── 3. Existing Conditions ── -->
+<div class="section">
+  <div class="section-header"><h2>3. Existing Conditions</h2></div>
+  <div class="section-body">
+    <div class="field"><label>Existing Insulation / Condition</label><textarea id="existing_insulation"></textarea></div>
+    <div class="field"><label>Moisture / Damp Issues</label><textarea id="moisture_damp"></textarea></div>
+    <div class="field"><label>Access Issues</label><textarea id="access_issues"></textarea></div>
+    <div id="photos_existing"></div>
+  </div>
+</div>
+
+<!-- ── 4. Client Preferences ── -->
+<div class="section">
+  <div class="section-header"><h2>4. Client Preferences</h2></div>
+  <div class="section-body">
+    <div class="field"><label>Preferred Materials</label><input type="text" id="pref_material"></div>
+    <div class="field"><label>Desired Completion Timeframe</label><input type="text" id="pref_timeframe"></div>
+    <div class="field"><label>Other Notes from the Client</label><textarea id="pref_notes"></textarea></div>
+    <div id="photos_preferences"></div>
+  </div>
+</div>
+
+<!-- ── 5. Environmental & Safety ── -->
+<div class="section">
+  <div class="section-header"><h2>5. Environmental &amp; Safety</h2></div>
+  <div class="section-body">
+    <div class="field"><label>Presence of Hazardous Materials</label><textarea id="safe_hazards" placeholder="Asbestos, chemicals, old materials…"></textarea></div>
+    <div class="field"><label>Wildlife / Pest Issues</label><textarea id="safe_pests"></textarea></div>
+    <div class="field">
+      <label>Is there any issues with Noise Pollution? (Time restrictions on noise pollution etc)</label>
+      <div class="checkrow">
+        <label><input type="radio" name="noise_pollution" value="Yes"> Yes</label>
+        <label><input type="radio" name="noise_pollution" value="No"> No</label>
+      </div>
+    </div>
+    <div class="field"><label>Noise Pollution Notes</label><textarea id="noise_notes" placeholder="Times noise pollution is prohibited…"></textarea></div>
+    <div class="field"><label>Safety Measures Required</label><textarea id="safe_measures" placeholder="PPE, access equipment, ventilation, exclusion zones…"></textarea></div>
+    <div id="photos_safety"></div>
+  </div>
+</div>
+
+<!-- ── 6. Measurements ── -->
+<div class="section">
+  <div class="section-header"><h2>6. Measurements</h2></div>
+  <div class="section-body">
+    <div class="field"><label>Measurements / Sketch Notes</label><textarea id="measure_notes" placeholder="Attach sketches or describe floor plans / insulation areas marked…"></textarea></div>
+    <div id="photos_measurements"></div>
+  </div>
+</div>
+
+<!-- ── 7. General Notes ── -->
+<div class="section">
+  <div class="section-header"><h2>7. General Notes / Additional Information</h2></div>
+  <div class="section-body">
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="general_notes" placeholder="Enter any additional information, observations or notes..."></textarea>
+    </div>
+    <div id="photos_recommendations"></div>
+  </div>
+</div>
+
+<button id="generateBtn" class="submit-btn" onclick="generatePDF()">Generate Survey PDF</button>
+<p class="generating" id="gen_msg">Building survey PDF with photos, please wait…</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ─────────────────────────────────────────────
+   PWA: Service Worker + Install Prompt
+───────────────────────────────────────────── */
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'flex';
+});
+
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('install-banner').style.display = 'none';
+});
+
+document.getElementById('install-dismiss').addEventListener('click', () => {
+  document.getElementById('install-banner').style.display = 'none';
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
+// Offline indicator
+function updateOnlineStatus() {
+  const badge = document.getElementById('offline-badge');
+  if (badge) badge.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+/* ─────────────────────────────────────────────
+   Constants & initial state
+───────────────────────────────────────────── */
+const LOGO_COLOUR_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABxkAAAHwCAYAAAB67tEeAAEAAElEQVR42uydd3zUVtaGX9nYGPeGDQZXuum9hFBCKoQQ0kjvPVuymy/JZnezSTbJpmeTTd/UJb33HkIvoZleDLiCG9jjXpnR94c9ZkbW9KireR9+F49GGunq3qOr8uqcI8myLIMQAahvq0BZwy4UGNYDAPYdW8ZGIbohKiwR6XHjkZMwHZlxk9AnLJ6N0kVLRy2K6zZ3H/vVzUU42nzIapm+kYOQFJkFAGxDQgghhBBCCCGEEEII8QMSRUaidUyyEesPf4jfDv+XjUGChoy4iZiRfg3SYkYF5f4fay7AwZrV2F7xJZo6atxaR9/IQRiSNAuDE09GcmQOjYoQQgghhBBCCCGEEEK8CEVGomk6jO14asN52FfTjN01IWg3SWhoB6LCgKgwGTHhMrJjZAxPMLGxiC7pGzkI83L+FDRiY1nDLiwr/DeONRd4db3JkTmYl/2noBVtCSGEEEIIIYQQQgghxBAbsOcAAAAA//9ibgcA';
+const LOGO_PDF_B64    = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABxkAAAHwCAYAAAB67tEeAAEAAElEQVR42uydd3zUVtaGX9nYGPeGDQZXuum9hFBCKoQQ0kjvPVuymy/JZnezSTbJpmeTTd/UJb33HkIvoZleDLiCG9jjXpnR94c9ZkbW9KireR9+F49GGunq3qOr8uqcI8myLIMQAahvq0BZwy4UGNYDAPYdW8ZGIbohKiwR6XHjkZMwHZlxk9AnLJ6N0kVLRy2K6zZ3H/vVzUU42nzIapm+kYOQFJkFAGxDQgghhBBCCCGEEEII8QMSRUaidUyyEesPf4jfDv+XjUGChoy4iZiRfg3SYkYF5f4fay7AwZrV2F7xJZo6atxaR9/IQRiSNAuDE09GcmQOjYoQQgghhBBCCCGEEEK8CEVGomk6jO14asN52FfTjN01IWg3SWhoB6LCgKgwGTHhMrJjZAxPMLGxiC7pGzkI83L+FDRiY1nDLiwr/DeONRd4db3JkTmYl/2noBVtCSGEEEIIIYQQQgghxBAbsOcAAAAA//9ibgcA';
+
+// Show colour logo in page header
+const logoEl = document.getElementById('logo_img');
+logoEl.src = LOGO_COLOUR_B64;
+
+function loadLogoForPdf() {
+  return Promise.resolve(LOGO_PDF_B64);
+}
+
+// Default date to today
+document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+
+const ROOF_OPTIONS   = ['SIDE ATTICS','SLOPES','TOP ATTIC','COLLAR','WARM ROOF','COLD ROOF','KNEE WALL'];
+const CAVITY_OPTIONS = ['CW FULL FILL','CW PARTIAL FILL','HOLLOW BLOCK SPRAY','DRYLINING','TIMBER FRAME'];
+
+let roofCount   = 0;
+let cavityCount = 0;
+
+/* ─────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────── */
+function v(id)        { return (document.getElementById(id) || {}).value || ''; }
+function radioVal(name){ const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : ''; }
+function isChecked(id) { return document.getElementById(id)?.checked ? 'Yes' : ''; }
+
+function openPinDrop() {
+  const address = v('customer_address').trim();
+  const eircode  = v('eircode').trim();
+  const query    = [address, eircode].filter(Boolean).join(' ');
+  const url      = query
+    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query)
+    : 'https://www.google.com/maps';
+  window.open(url, '_blank');
+}
+
+/* ─────────────────────────────────────────────
+   Dynamic insulation area cards
+───────────────────────────────────────────── */
+function addInsulationArea(type) {
+  const isRoof  = type === 'roof';
+  const container = document.getElementById(isRoof ? 'roofContainer' : 'cavityContainer');
+  const options = isRoof ? ROOF_OPTIONS : CAVITY_OPTIONS;
+  const count   = isRoof ? ++roofCount : ++cavityCount;
+  const prefix  = isRoof ? 'roof' : 'cavity';
+  const label   = isRoof ? 'Roof Area' : 'Cavity Wall Area';
+
+  const card = document.createElement('div');
+  card.className = 'area-card';
+  card.innerHTML = `
+    <h3>${label} ${count}</h3>
+    <div class="area-fields">
+      <div class="field">
+        <label>Area Type</label>
+        <select id="${prefix}_type${count}">
+          <option value="">Select…</option>
+          ${options.map(o => `<option>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>SQM</label><input type="text" id="${prefix}_sqm${count}" placeholder="SQM"></div>
+      <div class="field"><label>Depth</label><input type="text" id="${prefix}_depth${count}" placeholder="Depth"></div>
+      <div class="field"><label>Material Type</label><input type="text" id="${prefix}_material${count}" placeholder="Material type"></div>
+      <div class="field notes"><label>Notes</label><textarea id="${prefix}_notes${count}" placeholder="Notes"></textarea></div>
+    </div>`;
+  container.appendChild(card);
+}
+
+// Initialise with one default card each
+addInsulationArea('roof');
+addInsulationArea('cavity');
+
+/* ─────────────────────────────────────────────
+   Photo upload blocks
+───────────────────────────────────────────── */
+const PHOTO_SECTIONS = [
+  ['survey',          'Survey Details Photos'],
+  ['project',         'Project Type Photos'],
+  ['roof',            'Roof Photos'],
+  ['cavity',          'Cavity Wall Photos'],
+  ['airtightness',    'Airtightness Photos'],
+  ['grant',           'Grant Spec Photos'],
+  ['existing',        'Existing Conditions Photos'],
+  ['preferences',     'Client Preferences Photos'],
+  ['safety',          'Environmental & Safety Photos'],
+  ['measurements',    'Measurements Photos'],
+  ['recommendations', 'Recommendations Photos'],
+];
+
+const sectionPhotos = {};
+PHOTO_SECTIONS.forEach(([key]) => { sectionPhotos[key] = []; });
+
+function createPhotoBlock(key, title) {
+  const holder = document.getElementById('photos_' + key);
+  if (!holder) return;
+  holder.innerHTML = `
+    <div class="field">
+      <label>${title}</label>
+      <div class="photo-upload" onclick="document.getElementById('photo_input_${key}').click()">
+        <input type="file" id="photo_input_${key}" multiple accept="image/*"
+               onchange="addPhotos(this, '${key}')">
+        <p>📷 Tap to attach photos</p>
+        <p style="font-size:11px;color:#7ab07a;margin-top:4px">Photos will be embedded after this section in the PDF</p>
+      </div>
+      <div class="photo-grid" id="photo_grid_${key}"></div>
+    </div>`;
+}
+PHOTO_SECTIONS.forEach(([key, title]) => createPhotoBlock(key, title));
+
+/* ─────────────────────────────────────────────
+   EXIF orientation correction
+───────────────────────────────────────────── */
+function getExifOrientation(buffer) {
+  try {
+    const view = new DataView(buffer);
+    if (view.getUint16(0, false) !== 0xFFD8) return 1;
+    let offset = 2;
+    while (offset < view.byteLength) {
+      const marker = view.getUint16(offset, false);
+      offset += 2;
+      if (marker === 0xFFE1) {
+        if (view.getUint32(offset + 2, false) !== 0x45786966) return 1;
+        const little = view.getUint16(offset + 8, false) === 0x4949;
+        const tags   = view.getUint16(offset + 10, little);
+        for (let i = 0; i < tags; i++) {
+          if (view.getUint16(offset + 12 + i * 12, little) === 0x0112)
+            return view.getUint16(offset + 12 + i * 12 + 8, little);
+        }
+      } else if ((marker & 0xFF00) !== 0xFF00) {
+        break;
+      } else {
+        offset += view.getUint16(offset, false);
+      }
+    }
+  } catch (e) {}
+  return 1;
+}
+
+function fixOrientation(dataUrl, orientation, callback) {
+  const img = new Image();
+  img.onload = function () {
+    const canvas = document.createElement('canvas');
+    const ctx    = canvas.getContext('2d');
+    const w = img.width, h = img.height;
+
+    if (orientation >= 5 && orientation <= 8) {
+      canvas.width = h; canvas.height = w;
+    } else {
+      canvas.width = w; canvas.height = h;
+    }
+
+    switch (orientation) {
+      case 2: ctx.transform(-1, 0,  0,  1, w, 0); break;
+      case 3: ctx.transform(-1, 0,  0, -1, w, h); break;
+      case 4: ctx.transform( 1, 0,  0, -1, 0, h); break;
+      case 5: ctx.transform( 0, 1,  1,  0, 0, 0); break;
+      case 6: ctx.transform( 0, 1, -1,  0, h, 0); break;
+      case 7: ctx.transform( 0,-1, -1,  0, h, w); break;
+      case 8: ctx.transform( 0,-1,  1,  0, 0, w); break;
+    }
+
+    ctx.drawImage(img, 0, 0);
+    callback(canvas.toDataURL('image/jpeg', 0.88));
+  };
+  img.src = dataUrl;
+}
+
+function addPhotos(input, key) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      const reader2 = new FileReader();
+      reader2.onload = e2 => {
+        const orientation = getExifOrientation(e2.target.result);
+        fixOrientation(dataUrl, orientation, fixed => {
+          sectionPhotos[key].push({ name: file.name, dataUrl: fixed });
+          loaded++;
+          if (loaded === files.length) renderPhotoGrid(key);
+        });
+      };
+      reader2.readAsArrayBuffer(file);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  input.value = '';
+}
+
+function removePhoto(key, idx) {
+  sectionPhotos[key].splice(idx, 1);
+  renderPhotoGrid(key);
+}
+
+function renderPhotoGrid(key) {
+  const grid = document.getElementById('photo_grid_' + key);
+  if (!grid) return;
+  grid.innerHTML = '';
+  sectionPhotos[key].forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb';
+    div.innerHTML = `
+      <img src="${p.dataUrl}" alt="${p.name}">
+      <button class="remove-btn" onclick="removePhoto('${key}', ${i})">&#215;</button>
+      <div class="fname">${p.name}</div>`;
+    grid.appendChild(div);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   PDF generation
+───────────────────────────────────────────── */
+async function generatePDF() {
+  const btn = document.getElementById('generateBtn');
+  const msg = document.getElementById('gen_msg');
+  btn.disabled    = true;
+  btn.textContent = 'Generating…';
+  msg.style.display = 'block';
+  await new Promise(r => setTimeout(r, 50));
+
+  const logoPdfData = await loadLogoForPdf();
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+
+  const PW = 595, PH = 842, M = 40, CW = PW - M * 2;
+  let y = 0;
+
+  const GREEN      = [45,  106, 45];
+  const MIDGREEN   = [74,  140, 74];
+  const LIGHTGREEN = [232, 245, 232];
+  const STRIPE     = [245, 252, 245];
+  const WHITE      = [255, 255, 255];
+  const DARK       = [25,  25,  35];
+  const MID        = [74,  120, 74];
+  const BORDER     = [168, 208, 168];
+
+  function newPage()    { doc.addPage(); y = 0; drawHeader(); }
+  function check(h)     { if (y + h > PH - 60) newPage(); }
+
+  function drawHeader() {
+    doc.setFillColor(...GREEN);
+    doc.rect(0, 0, PW, 70, 'F');
+    doc.setFillColor(...MIDGREEN);
+    doc.rect(0, 66, PW, 4, 'F');
+
+    try {
+      if (logoPdfData) doc.addImage(logoPdfData, 'PNG', M, 8, 140, 54);
+    } catch (e) {}
+
+    doc.setTextColor(...WHITE);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Insulation Site Survey', PW / 2, 38, { align: 'center' });
+
+    const dt = v('date') || new Date().toISOString().slice(0, 10);
+    doc.setFillColor(...MIDGREEN);
+    doc.roundedRect(PW - M - 110, 18, 110, 22, 4, 4, 'F');
+    doc.setTextColor(...WHITE);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(dt, PW - M - 55, 32, { align: 'center' });
+
+    y = 86;
+  }
+
+  function drawFooter() {
+    const pages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      doc.setFillColor(...GREEN);
+      doc.rect(0, PH - 36, PW, 36, 'F');
+      doc.setTextColor(...WHITE);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Ecospec | Insulation Site Survey | Confidential', M, PH - 16);
+      doc.text('Page ' + i + ' of ' + pages, PW - M, PH - 16, { align: 'right' });
+      const client   = v('client_name') || v('customer_name');
+      const surveyor = v('surveyor');
+      if (client || surveyor)
+        doc.text([surveyor, client].filter(Boolean).join(' — '), PW / 2, PH - 16, { align: 'center' });
+    }
+  }
+
+  function sectionBanner(title) {
+    check(32);
+    doc.setFillColor(...MIDGREEN);
+    doc.rect(M, y, 4, 26, 'F');
+    doc.setFillColor(...LIGHTGREEN);
+    doc.rect(M + 4, y, CW - 4, 26, 'F');
+    doc.setDrawColor(...MIDGREEN);
+    doc.setLineWidth(0.5);
+    doc.line(M, y + 26, M + CW, y + 26);
+    doc.setTextColor(...GREEN);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title.toUpperCase(), M + 14, y + 17);
+    y += 32;
+  }
+
+  function fieldRow(label, value, shade) {
+    const lines = doc.splitTextToSize(value || '—', CW * 0.54);
+    const h = Math.max(22, lines.length * 11 + 10);
+    check(h);
+    doc.setFillColor(...(shade ? STRIPE : WHITE));
+    doc.rect(M, y, CW, h, 'F');
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.3);
+    doc.line(M, y + h, M + CW, y + h);
+    doc.setTextColor(...MID);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label, M + 8, y + 14);
+    doc.setTextColor(...DARK);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(lines, M + CW * 0.42, y + 14);
+    y += h;
+  }
+
+  function fieldRow2(l1, v1, l2, v2, shade) {
+    check(22);
+    const hw = CW / 2;
+    doc.setFillColor(...(shade ? STRIPE : WHITE));
+    doc.rect(M, y, CW, 22, 'F');
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.3);
+    doc.line(M, y + 22, M + CW, y + 22);
+    doc.line(M + hw, y, M + hw, y + 22);
+    doc.setTextColor(...MID);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(l1, M + 8, y + 14);
+    doc.text(l2, M + hw + 8, y + 14);
+    doc.setTextColor(...DARK);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(v1 || '—', M + hw * 0.55, y + 14);
+    doc.text(v2 || '—', M + hw + hw * 0.55, y + 14);
+    y += 22;
+  }
+
+  function noteBlock(label, value) {
+    if (!value) return;
+    const lines = doc.splitTextToSize(value, CW - 24);
+    const h = Math.max(36, lines.length * 13 + 20);
+    check(h + 4);
+    doc.setFillColor(...MIDGREEN);
+    doc.rect(M, y, 3, h, 'F');
+    doc.setFillColor(...STRIPE);
+    doc.rect(M + 3, y, CW - 3, h, 'F');
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.3);
+    doc.rect(M, y, CW, h, 'S');
+    doc.setTextColor(...MID);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(label.toUpperCase(), M + 12, y + 12);
+    doc.setTextColor(...DARK);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(lines, M + 12, y + 24);
+    y += h + 8;
+  }
+
+  function table(headers, rows) {
+    if (!rows.length) return;
+    const rh = 28;
+    const widths = [0.18, 0.16, 0.10, 0.10, 0.18, 0.28];
+    check(20 + rows.length * rh);
+
+    doc.setFillColor(...GREEN);
+    doc.rect(M, y, CW, 20, 'F');
+    doc.setTextColor(...WHITE);
+    doc.setFontSize(7.7);
+    doc.setFont('helvetica', 'bold');
+    let x = M;
+    headers.forEach((h, i) => { doc.text(h, x + 5, y + 13); x += CW * widths[i]; });
+    y += 20;
+
+    rows.forEach((row, ri) => {
+      check(rh);
+      doc.setFillColor(...(ri % 2 === 0 ? WHITE : STRIPE));
+      doc.rect(M, y, CW, rh, 'F');
+      doc.setDrawColor(...BORDER);
+      doc.setLineWidth(0.3);
+
+      let xx = M;
+      for (let i = 0; i < widths.length - 1; i++) {
+        xx += CW * widths[i];
+        doc.line(xx, y, xx, y + rh);
+      }
+      doc.line(M, y + rh, M + CW, y + rh);
+
+      doc.setTextColor(...DARK);
+      doc.setFontSize(7.2);
+      doc.setFont('helvetica', 'normal');
+      xx = M;
+      row.forEach((cell, i) => {
+        doc.text(doc.splitTextToSize(cell || '—', CW * widths[i] - 8), xx + 5, y + 11);
+        xx += CW * widths[i];
+      });
+      y += rh;
+    });
+    y += 6;
+  }
+
+  function photoPages(key, title) {
+    const photos = sectionPhotos[key] || [];
+    if (!photos.length) return;
+    sectionBanner(title + ' (' + photos.length + ')');
+
+    const imgW = (CW - 12) / 2;
+    const imgH = imgW * 0.75;
+
+    for (let i = 0; i < photos.length; i += 2) {
+      check(imgH + 30);
+      for (let j = 0; j < 2; j++) {
+        const idx = i + j;
+        if (idx >= photos.length) break;
+        const p    = photos[idx];
+        const xPos = M + j * (imgW + 12);
+        const name = p.name.length > 35 ? p.name.substring(0, 32) + '…' : p.name;
+
+        doc.setTextColor(...MID);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text((idx + 1) + '. ' + name, xPos, y + 10);
+
+        try {
+          doc.addImage(p.dataUrl, 'JPEG', xPos, y + 14, imgW, imgH);
+          doc.setDrawColor(...BORDER);
+          doc.setLineWidth(0.5);
+          doc.rect(xPos, y + 14, imgW, imgH, 'S');
+        } catch (e) {
+          doc.setFillColor(...STRIPE);
+          doc.rect(xPos, y + 14, imgW, imgH, 'F');
+          doc.text('Image unavailable', xPos + imgW / 2, y + 14 + imgH / 2, { align: 'center' });
+        }
+      }
+      y += imgH + 28;
+    }
+  }
+
+  /* ── Build document ── */
+  drawHeader();
+
+  check(30);
+  doc.setFillColor(...MIDGREEN);
+  doc.roundedRect(M + CW - 110, y, 110, 22, 4, 4, 'F');
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SURVEY NO.', M + CW - 55, y + 9, { align: 'center' });
+  doc.setFillColor(...WHITE);
+  doc.roundedRect(M + CW - 108, y + 10, 106, 18, 3, 3, 'FD');
+  doc.setTextColor(...DARK);
+  doc.setFontSize(9);
+  doc.text(v('survey_no') || '—', M + CW - 104, y + 23);
+  y += 36;
+
+  sectionBanner('Survey Details');
+  fieldRow2('Surveyor Name', v('surveyor'), 'Date', v('date'), false);
+  fieldRow('Client Name',             v('client_name'),    true);
+  fieldRow('Client Address',          v('client_address'), false);
+  fieldRow('Client Number',           v('client_number'),  true);
+  fieldRow('Customer Name',           v('customer_name'),  false);
+  fieldRow('Customer / Site Address', v('customer_address'), true);
+  fieldRow('Eircode',                 v('eircode'),        false);
+  fieldRow('Pin Drop',                v('pin_drop'),       true);
+  fieldRow2('Customer Number', v('customer_number'), 'Email', v('email'), false);
+  photoPages('survey', 'Survey Details Photos');
+  y += 8;
+
+  sectionBanner('1. Project Type');
+  fieldRow('Project Type',  radioVal('project_type'), false);
+  fieldRow('Building Type', [v('construction'), v('construction_other')].filter(Boolean).join(' – '), true);
+  fieldRow('Year Built',    v('year_built'), false);
+  photoPages('project', 'Project Type Photos');
+  y += 8;
+
+  sectionBanner('2. Areas to Insulate');
+
+  const ventCards = [];
+  if (document.getElementById('ventcard_400')?.checked) ventCards.push("400's");
+  if (document.getElementById('ventcard_600')?.checked) ventCards.push("600's");
+  if (ventCards.length) fieldRow('Selected Vent Cards', ventCards.join(', '), false);
+
+  const insulationRows = [];
+  for (let i = 1; i <= roofCount; i++) {
+    if (v('roof_type'+i) || v('roof_sqm'+i) || v('roof_depth'+i) || v('roof_material'+i) || v('roof_notes'+i))
+      insulationRows.push(['Roof Insulation', v('roof_type'+i), v('roof_sqm'+i), v('roof_depth'+i), v('roof_material'+i), v('roof_notes'+i)]);
+  }
+  for (let i = 1; i <= cavityCount; i++) {
+    if (v('cavity_type'+i) || v('cavity_sqm'+i) || v('cavity_depth'+i) || v('cavity_material'+i) || v('cavity_notes'+i))
+      insulationRows.push(['Cavity Wall', v('cavity_type'+i), v('cavity_sqm'+i), v('cavity_depth'+i), v('cavity_material'+i), v('cavity_notes'+i)]);
+  }
+  table(['Category', 'Area Type', 'SQM', 'Depth', 'Material', 'Notes'], insulationRows);
+
+  photoPages('roof',   'Roof Photos');
+  photoPages('cavity', 'Cavity Wall Photos');
+
+  sectionBanner('Airtightness');
+  fieldRow('Windows – Linear Metres',     v('air_windows_lm'),    false);
+  fieldRow('Veluxes',                      v('air_veluxes'),       true);
+  fieldRow('Membrane System – SQM',        v('air_membrane_sqm'),  false);
+  fieldRow('Materials Required / Brand',   v('air_materials_brand'), true);
+  noteBlock('Notes', v('air_notes'));
+  photoPages('airtightness', 'Airtightness Photos');
+
+  sectionBanner('Grant Spec');
+  fieldRow('Pipes to be wrapped',          isChecked('grant_pipes_wrapped'), false);
+  fieldRow('Hooks and eyes required',      isChecked('grant_hooks_eyes'),    true);
+  fieldRow('Draughtproofing required',      isChecked('draughtproof'),    true);
+  fieldRow('Walkway to put down – SQM',    v('grant_walkway_sqm'),           false);
+  fieldRow('Tanks to wrap – QTY',          v('grant_tanks_qty'),             true);
+  fieldRow('Hatch solution',               v('grant_hatch'),                 false);
+  fieldRow('Are vents required?',          v('grant_vents_required'),        true);
+  photoPages('grant', 'Grant Spec Photos');
+  y += 8;
+
+  sectionBanner('3. Existing Conditions');
+  noteBlock('Existing Insulation / Condition', v('existing_insulation'));
+  noteBlock('Moisture / Damp Issues',          v('moisture_damp'));
+  noteBlock('Access Issues',                   v('access_issues'));
+  photoPages('existing', 'Existing Conditions Photos');
+  y += 8;
+
+  sectionBanner('4. Customer Preferences');
+  fieldRow('Preferred Materials',             v('pref_material'),  false);
+  fieldRow('Desired Completion Timeframe',    v('pref_timeframe'), true);
+  noteBlock('Other Notes from the Client',    v('pref_notes'));
+  photoPages('preferences', 'Client Preferences Photos');
+  y += 8;
+
+  sectionBanner('5. Environmental and Safety Considerations');
+  noteBlock('Presence of Hazardous Materials', v('safe_hazards'));
+  noteBlock('Wildlife / Pest Issues',          v('safe_pests'));
+  fieldRow('Noise Pollution',                  radioVal('noise_pollution'), true);
+  noteBlock('Noise Pollution Notes',           v('noise_notes'));
+  noteBlock('Safety Measures Required',        v('safe_measures'));
+  photoPages('safety', 'Environmental & Safety Photos');
+  y += 8;
+
+  sectionBanner('6. Measurements');
+  noteBlock('Measurements / Sketch Notes', v('measure_notes'));
+  photoPages('measurements', 'Measurements Photos');
+  y += 8;
+
+  sectionBanner('7. General Notes / Additional Information');
+  noteBlock('Notes', v('general_notes'));
+  photoPages('recommendations', 'Additional Information Photos');
+
+  drawFooter();
+
+  const dt       = v('date') || new Date().toISOString().slice(0, 10);
+  const clientId = v('client_name') || v('customer_name') || 'Client';
+  doc.save(clientId + '_' + dt + '_Site_Survey.pdf');
+
+  btn.disabled    = false;
+  btn.textContent = 'Generate Survey PDF';
+  msg.style.display = 'none';
+}
+</script>
+</body>
+</html>

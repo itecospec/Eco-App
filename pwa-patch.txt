@@ -1,0 +1,10 @@
+Add these to <head> after <title>:
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+Add before </body>:
+
+  Install button + SW registration script
+
