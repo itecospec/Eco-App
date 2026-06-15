@@ -542,8 +542,15 @@ updateOnlineStatus();
 /* ─────────────────────────────────────────────
    Constants & initial state
 ───────────────────────────────────────────── */
+const LOGO_COLOUR_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABxkAAAHwCAYAAAB67tEeAAEAAElEQVR42uydd3zUVtaGX9nYGPeGDQZXuum9hFBCKoQQ0kjvPVuymy/JZnezSTbJpmeTTd/UJb33HkIvoZleDLiCG9jjXpnR94c9ZkbW9KireR9+F49GGunq3qOr8uqcI8myLIMQAahvq0BZwy4UGNYDAPYdW8ZGIbohKiwR6XHjkZMwHZlxk9AnLJ6N0kVLRy2K6zZ3H/vVzUU42nzIapm+kYOQFJkFAGxDQgghhBBCCCGEEEII8QMSRUaidUyyEesPf4jfDv+XjUGChoy4iZiRfg3SYkYF5f4fay7AwZrV2F7xJZo6atxaR9/IQRiSNAuDE09GcmQOjYoQQgghhBBCCCGEEEK8CEVGomk6jO14asN52FfTjN01IWg3SWhoB6LCgKgwGTHhMrJjZAxPMLGxiC7pGzkI83L+FDRiY1nDLiwr/DeONRd4db3JkTmYl/2noBVtCSGEEEIIIYQQQgghxBAbsOcAAAAA//9ibgcA';
+const LOGO_PDF_B64    = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABxkAAAHwCAYAAAB67tEeAAEAAElEQVR42uydd3zUVtaGX9nYGPeGDQZXuum9hFBCKoQQ0kjvPVuymy/JZnezSTbJpmeTTd/UJb33HkIvoZleDLiCG9jjXpnR94c9ZkbW9KireR9+F49GGunq3qOr8uqcI8myLIMQAahvq0BZwy4UGNYDAPYdW8ZGIbohKiwR6XHjkZMwHZlxk9AnLJ6N0kVLRy2K6zZ3H/vVzUU42nzIapm+kYOQFJkFAGxDQgghhBBCCCGEEEII8QMSRUaidUyyEesPf4jfDv+XjUGChoy4iZiRfg3SYkYF5f4fay7AwZrV2F7xJZo6atxaR9/IQRiSNAuDE09GcmQOjYoQQgghhBBCCCGEEEK8CEVGomk6jO14asN52FfTjN01IWg3SWhoB6LCgKgwGTHhMrJjZAxPMLGxiC7pGzkI83L+FDRiY1nDLiwr/DeONRd4db3JkTmYl/2noBVtCSGEEEIIIYQQQgghxBAbsOcAAAAA//9ibgcA';
 
+	const logoEl = document.getElementById('logo_img');
+logoEl.src = LOGO_COLOUR_B64;
 
+function loadLogoForPdf() {
+  return Promise.resolve(LOGO_PDF_B64);
+}
 // Default date to today
 document.getElementById('date').value = new Date().toISOString().slice(0, 10);
 
