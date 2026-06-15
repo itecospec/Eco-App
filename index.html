@@ -289,7 +289,7 @@
   <button id="install-dismiss" class="install-dismiss">✕</button>
 </div>
 
-<img id="logo_img" src="Ecospec logo.png" alt="Ecospec Logo">
+<img id="logo_img" src="Ecospeclogo.png" alt="Ecospec Logo">
 <h1>Site Survey</h1>
 
 <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:1rem;gap:8px">
@@ -821,7 +821,7 @@ async function generatePDF() {
       doc.setTextColor(...WHITE);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      doc.text('Ecospec | Insulation Site Survey | Confidential', M, PH - 16);
+      doc.text('Ecospec | Site Survey | Confidential', M, PH - 16);
       doc.text('Page ' + i + ' of ' + pages, PW - M, PH - 16, { align: 'right' });
       const client   = v('client_name') || v('customer_name');
       const surveyor = v('surveyor');
