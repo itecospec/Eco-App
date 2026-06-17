@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecospec-survey-v1';
+const CACHE_NAME = 'ecospec-survey-v2';
 const ASSETS = [
   './',
   './index.html',
