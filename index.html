@@ -269,11 +269,26 @@
     pointer-events: none;
   }
 
+
+  /* ── Quotation ── */
+  .quotation-item { border:1px solid #c8e0c8; border-radius:10px; background:#f8fff8; overflow:hidden; margin-bottom:.75rem; }
+  .quotation-item-header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:.7rem .85rem; background:#e8f5e8; border-bottom:1px solid #c8e0c8; }
+  .quotation-item-header strong { color:#2d6a2d; font-size:14px; }
+  .remove-quote-item { border:0; background:#c62828; color:#fff; padding:5px 10px; border-radius:7px; cursor:pointer; font-weight:700; }
+  .quotation-item-fields { display:grid; grid-template-columns:1fr 145px 145px; gap:.75rem; padding:.85rem; }
+  .quotation-item-fields .wide { grid-column:1 / -1; }
+  .pdf-actions { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; position:sticky; bottom:1rem; z-index:10; margin-top:1rem; }
+  .pdf-actions .submit-btn { position:static; margin-top:0; }
+  .quotation-btn { background:#4a8c4a; }
+  .quotation-btn:hover { background:#367336; }
+
   /* ── Responsive ── */
   @media (max-width: 650px) {
     .row2 { grid-template-columns: 1fr; }
     .area-fields { grid-template-columns: 1fr; }
     .photo-grid { grid-template-columns: repeat(2, 1fr); }
+    .quotation-item-fields, .pdf-actions { grid-template-columns: 1fr; }
+    .quotation-item-fields .wide { grid-column:auto; }
   }
 </style>
 </head>
@@ -305,7 +320,14 @@
   <div class="section-header"><h2>Survey Details</h2></div>
   <div class="section-body">
     <div class="row2">
-      <div class="field"><label>Surveyor Name</label><input type="text" id="surveyor" placeholder="Surveyor name"></div>
+      <div class="field"><label>Surveyor Name</label>
+        <select id="surveyor" onchange="updateQuotationContact()">
+          <option value="">Select surveyor...</option>
+          <option value="TJ">TJ</option>
+          <option value="Michael">Michael</option>
+          <option value="Ciaran">Ciaran</option>
+        </select>
+      </div>
       <div class="field"><label>Date</label><input type="date" id="date"></div>
     </div>
     <div class="subsection-label">Client Details</div>
@@ -492,8 +514,35 @@
   </div>
 </div>
 
-<button id="generateBtn" class="submit-btn" onclick="generatePDF()">Generate Survey PDF</button>
-<p class="generating" id="gen_msg">Building survey PDF with photos, please wait…</p>
+
+<!-- ── Quotation Details ── -->
+<div class="section">
+  <div class="section-header"><h2>8. Quotation</h2></div>
+  <div class="section-body">
+    <div class="row2">
+      <div class="field"><label>Quotation Number</label><input type="text" id="quote_no" placeholder="e.g. ECO-Q-001"></div>
+      <div class="field"><label>Quotation Date</label><input type="date" id="quote_date"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Quoted By</label><input type="text" id="quote_by_display" placeholder="Auto-filled from surveyor if blank" oninput="updateQuotationEmail()"></div>
+      <div class="field"><label>Quotation Email</label><input type="email" id="quote_email" placeholder="Auto-filled from surveyor or enter an email" oninput="this.dataset.manuallyEdited='true'"></div>
+    </div>
+    <div class="field"><label>Contact Mobile</label><input type="tel" id="quote_mobile" placeholder="e.g. 087 219 3734"></div>
+    <div class="field"><label>Project Location</label><textarea id="quote_project_location" placeholder="Leave blank to use the customer/site address"></textarea></div>
+    <div class="subsection-label">Quoted Works</div>
+    <div id="quotationItemsContainer"></div>
+    <button type="button" class="inline-btn" onclick="syncSurveyWorksToQuotation(true)">Copy Survey Works to Quotation</button>
+    <button type="button" class="inline-btn" onclick="addQuotationItem()">+ Add Quotation Item</button>
+    <div class="field"><label>Net Quotation €</label><input type="text" id="quote_net_total" value="0.00" readonly></div>
+  </div>
+</div>
+
+<div class="pdf-actions">
+  <button id="generateBtn" class="submit-btn" onclick="generatePDF()">Generate Survey PDF</button>
+  <button id="quotationBtn" class="submit-btn quotation-btn" onclick="generateQuotationPDF()">Generate Quotation PDF</button>
+</div>
+<p class="generating" id="gen_msg">Building PDF, please wait…</p>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
@@ -623,7 +672,19 @@ function addInsulationArea(type) {
       </div>
       <div class="field"><label>SQM</label><input type="text" id="${prefix}_sqm${count}" placeholder="SQM"></div>
       <div class="field"><label>Depth</label><input type="text" id="${prefix}_depth${count}" placeholder="Depth"></div>
-      <div class="field"><label>Material Type</label><input type="text" id="${prefix}_material${count}" placeholder="Material type"></div>
+      <div class="field">
+        <label>Material Type</label>
+        ${isRoof ? `
+          <input type="text" id="${prefix}_material${count}" placeholder="Material type">
+        ` : `
+          <select id="${prefix}_material${count}" onchange="syncSurveyWorksToQuotation(false)">
+            <option value="">Select…</option>
+            <option value="Bead">Bead</option>
+            <option value="Walltite">Walltite</option>
+            <option value="Firetite">Firetite</option>
+          </select>
+        `}
+      </div>
       <div class="field notes"><label>Notes</label><textarea id="${prefix}_notes${count}" placeholder="Notes"></textarea></div>
     </div>`;
   container.appendChild(card);
@@ -773,6 +834,192 @@ function renderPhotoGrid(key) {
     grid.appendChild(div);
   });
 }
+
+
+/* ─────────────────────────────────────────────
+   Quotation items and totals
+───────────────────────────────────────────── */
+let quotationItemCount = 0;
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+function addQuotationItem(data = {}) {
+  quotationItemCount++;
+  const container = document.getElementById('quotationItemsContainer');
+  const item = document.createElement('div');
+  item.className = 'quotation-item';
+  item.innerHTML = `
+    <div class="quotation-item-header"><strong>Quotation Item ${quotationItemCount}</strong><button type="button" class="remove-quote-item" onclick="removeQuotationItem(this)">Remove</button></div>
+    <div class="quotation-item-fields">
+      <div class="field wide"><label>Heading</label><input type="text" class="quote-item-title" placeholder="e.g. Roof – Vaulted Areas" value="${escapeHtml(data.title)}"></div>
+      <div class="field wide"><label>Details</label><textarea class="quote-item-description" style="min-height:110px" placeholder="Describe the work to be carried out...">${escapeHtml(data.description)}</textarea></div>
+      <div class="field"><label>Measurement</label><input type="text" class="quote-item-measurement" placeholder="e.g. 224 sqm" value="${escapeHtml(data.measurement)}"></div>
+      <div class="field"><label>Price Net €</label><input type="number" class="quote-item-price" min="0" step="0.01" value="${data.price || ''}" oninput="updateQuotationTotals()"></div>
+    </div>`;
+  container.appendChild(item);
+  renumberQuotationItems();
+  updateQuotationTotals();
+}
+
+function removeQuotationItem(button) {
+  button.closest('.quotation-item')?.remove();
+  renumberQuotationItems();
+  updateQuotationTotals();
+}
+function renumberQuotationItems() {
+  document.querySelectorAll('#quotationItemsContainer .quotation-item').forEach((item, i) => {
+    item.querySelector('strong').textContent = `Quotation Item ${i + 1}`;
+  });
+}
+function getQuotationItems() {
+  return [...document.querySelectorAll('#quotationItemsContainer .quotation-item')].map(item => ({
+    title: item.querySelector('.quote-item-title').value.trim(),
+    description: item.querySelector('.quote-item-description').value.trim(),
+    measurement: item.querySelector('.quote-item-measurement').value.trim(),
+    price: parseFloat(item.querySelector('.quote-item-price').value) || 0
+  })).filter(item => item.title || item.description || item.measurement || item.price);
+}
+function updateQuotationTotals() {
+  const net = getQuotationItems().reduce((sum, item) => sum + item.price, 0);
+  document.getElementById('quote_net_total').value = net.toFixed(2);
+}
+
+const SURVEY_QUOTE_DETAILS = {
+  Bead: 'Cavity walls pumped with Korefill Bonded Bead, with thermal conductivity of 0.033 W/m²K.',
+  Walltite: 'Cavity walls injected with Walltite CV 100 closed cell foam.',
+  Firetite: 'Cavity walls injected with Firetite insulation.',
+  Airtightness: 'All windows and external doors sealed with air tightness tapes and sealants.\nComplete ceiling areas sealed with air tightness membrane and associated sealants.',
+  Roof: 'Vent carded and sprayed open cell spray foam insulation to underside.'
+};
+
+function joinMeasurements(values) {
+  const cleaned = values.map(value => String(value || '').trim()).filter(Boolean);
+  return [...new Set(cleaned)].join(', ');
+}
+
+function getSurveyQuotationTemplates() {
+  const templates = [];
+  const cavityGroups = {};
+
+  for (let i = 1; i <= cavityCount; i++) {
+    const material = v(`cavity_material${i}`).trim();
+    if (!material || !SURVEY_QUOTE_DETAILS[material]) continue;
+    if (!cavityGroups[material]) cavityGroups[material] = [];
+    const sqm = v(`cavity_sqm${i}`).trim();
+    if (sqm) cavityGroups[material].push(/sqm/i.test(sqm) ? sqm : `${sqm} sqm`);
+  }
+
+  Object.entries(cavityGroups).forEach(([material, measurements]) => {
+    templates.push({
+      key: `survey-cavity-${material.toLowerCase()}`,
+      title: 'Cavity Walls',
+      description: SURVEY_QUOTE_DETAILS[material],
+      measurement: joinMeasurements(measurements)
+    });
+  });
+
+  const hasAirtightness = [
+    v('air_windows_lm'), v('air_veluxes'), v('air_membrane_sqm'),
+    v('air_materials_brand'), v('air_notes')
+  ].some(value => value.trim());
+
+  if (hasAirtightness) {
+    const measurements = [];
+    if (v('air_windows_lm').trim()) measurements.push(`${v('air_windows_lm').trim()} LM windows/doors`);
+    if (v('air_membrane_sqm').trim()) measurements.push(`${v('air_membrane_sqm').trim()} sqm membrane`);
+    templates.push({
+      key: 'survey-airtightness',
+      title: 'Air Tightness',
+      description: SURVEY_QUOTE_DETAILS.Airtightness,
+      measurement: joinMeasurements(measurements)
+    });
+  }
+
+  const roofMeasurements = [];
+  let hasRoof = false;
+  for (let i = 1; i <= roofCount; i++) {
+    const values = [v(`roof_type${i}`), v(`roof_sqm${i}`), v(`roof_depth${i}`), v(`roof_material${i}`), v(`roof_notes${i}`)];
+    if (values.some(value => value.trim())) hasRoof = true;
+    const sqm = v(`roof_sqm${i}`).trim();
+    if (sqm) roofMeasurements.push(/sqm/i.test(sqm) ? sqm : `${sqm} sqm`);
+  }
+
+  if (hasRoof) {
+    templates.push({
+      key: 'survey-roof',
+      title: 'Roof',
+      description: SURVEY_QUOTE_DETAILS.Roof,
+      measurement: joinMeasurements(roofMeasurements)
+    });
+  }
+
+  return templates;
+}
+
+function syncSurveyWorksToQuotation(showMessage = false) {
+  const templates = getSurveyQuotationTemplates();
+  const container = document.getElementById('quotationItemsContainer');
+  if (!container) return;
+
+  templates.forEach(template => {
+    let item = container.querySelector(`[data-survey-key="${template.key}"]`);
+    if (!item) {
+      addQuotationItem(template);
+      item = container.lastElementChild;
+      if (item) item.dataset.surveyKey = template.key;
+    } else {
+      const title = item.querySelector('.quote-item-title');
+      const description = item.querySelector('.quote-item-description');
+      const measurement = item.querySelector('.quote-item-measurement');
+      if (title) title.value = template.title;
+      if (description) description.value = template.description;
+      if (measurement) measurement.value = template.measurement;
+    }
+  });
+
+  renumberQuotationItems();
+  updateQuotationTotals();
+  if (showMessage) {
+    alert(templates.length ? 'Survey works copied to the quotation.' : 'No roof, cavity wall or air tightness survey details were found.');
+  }
+}
+
+const QUOTATION_EMAILS = {
+  tj: 'tj@ecospec.ie',
+  michael: 'michael@ecospec.ie',
+  ciaran: 'ciaran@ecospec.ie'
+};
+
+function updateQuotationEmail() {
+  const quotedBy = v('quote_by_display').toLowerCase().trim();
+  const quoteEmail = document.getElementById('quote_email');
+  if (!quoteEmail || quoteEmail.dataset.manuallyEdited === 'true') return;
+  quoteEmail.value = QUOTATION_EMAILS[quotedBy] || '';
+}
+
+function updateQuotationContact() {
+  const surveyor = v('surveyor');
+  const quotedBy = document.getElementById('quote_by_display');
+
+  // Only copy the surveyor into the quotation when Quoted By is empty.
+  // A name already entered in the quotation will never be overwritten.
+  if (quotedBy && !quotedBy.value.trim() && surveyor) {
+    quotedBy.value = surveyor;
+  }
+
+  updateQuotationEmail();
+}
+function formatEuro(amount) {
+  return new Intl.NumberFormat('en-IE', { style:'currency', currency:'EUR' }).format(Number(amount) || 0);
+}
+window.addEventListener('DOMContentLoaded', () => {
+  const qd = document.getElementById('quote_date');
+  if (qd && !qd.value) qd.value = new Date().toISOString().slice(0, 10);
+  if (!document.querySelector('#quotationItemsContainer .quotation-item')) addQuotationItem();
+  updateQuotationContact();
+});
 
 /* ─────────────────────────────────────────────
    PDF generation
@@ -1128,6 +1375,94 @@ async function generatePDF() {
   btn.textContent = 'Generate Survey PDF';
   msg.style.display = 'none';
 }
+
+async function generateQuotationPDF() {
+  const btn = document.getElementById('quotationBtn');
+  const surveyBtn = document.getElementById('generateBtn');
+  const msg = document.getElementById('gen_msg');
+  btn.disabled = true; surveyBtn.disabled = true; btn.textContent = 'Generating…'; msg.style.display = 'block';
+  await new Promise(r => setTimeout(r, 50));
+  try {
+    syncSurveyWorksToQuotation(false);
+    const items = getQuotationItems();
+    if (!items.length) throw new Error('Please add at least one quotation item.');
+    const logoPdfData = await loadLogoForPdf();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+    const PW=595, PH=842, M=38, CW=PW-M*2;
+    const GREEN=[45,106,45], MIDGREEN=[74,140,74], LIGHT=[232,245,232], WHITE=[255,255,255], DARK=[25,25,35], GREY=[90,90,90], BORDER=[175,205,175];
+    let y=0;
+    const clientName=(v('client_name')||v('customer_name')||'').trim();
+    const clientAddress=(v('client_address')||v('customer_address')||'').trim();
+    const projectLocation=(v('quote_project_location')||v('customer_address')||'As above').trim();
+    const net=items.reduce((sum,item)=>sum+item.price,0);
+    const quotationEmail=v('quote_email');
+
+    function header(first=true){
+      doc.setFillColor(...GREEN); doc.rect(0,0,PW,first?112:70,'F');
+      doc.setFillColor(...MIDGREEN); doc.rect(0,first?108:66,PW,4,'F');
+      try { if (logoPdfData) doc.addImage(logoPdfData,'PNG',M,9,142,53); } catch(e) {}
+      doc.setTextColor(...WHITE); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Ecospec Ltd',PW-M,22,{align:'right'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.text('Moynalvey, Summerhill, Co. Meath, A83 W882',PW-M,36,{align:'right'});
+      doc.text('Tel: +353 (0)46 955 8479',PW-M,50,{align:'right'});
+      doc.text(`www.ecospec.ie  |  ${quotationEmail || 'info@ecospec.ie'}`,PW-M,63,{align:'right'});
+      if(first){ doc.setFont('helvetica','bold'); doc.setFontSize(19); doc.text('QUOTATION',PW/2,91,{align:'center'}); y=128; } else y=84;
+    }
+    function newPage(){ doc.addPage(); header(false); }
+    function check(h){ if(y+h>PH-55) newPage(); }
+    function section(title){ check(32); doc.setFillColor(...LIGHT); doc.rect(M,y,CW,25,'F'); doc.setFillColor(...MIDGREEN); doc.rect(M,y,5,25,'F'); doc.setTextColor(...GREEN); doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text(title.toUpperCase(),M+14,y+17); y+=32; }
+    function infoRow(l1,v1,l2,v2){
+      const a=doc.splitTextToSize(v1||'—',190), b=doc.splitTextToSize(v2||'—',130), h=Math.max(25,a.length*10+12,b.length*10+12); check(h);
+      doc.setDrawColor(...BORDER); doc.line(M,y+h,M+CW,y+h);
+      doc.setTextColor(...GREY); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(l1,M+5,y+15);
+      doc.setTextColor(...DARK); doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text(a,M+72,y+15);
+      doc.setTextColor(...GREY); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(l2,M+330,y+15);
+      doc.setTextColor(...DARK); doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text(b,M+397,y+15); y+=h;
+    }
+    function tableHeader(){ check(28); const d=330,mw=110; doc.setFillColor(...GREEN); doc.rect(M,y,CW,26,'F'); doc.setTextColor(...WHITE); doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Details',M+8,y+17); doc.text('Measurement',M+d+mw/2,y+17,{align:'center'}); doc.text('Price Net',M+CW-8,y+17,{align:'right'}); y+=26; }
+    function itemRow(item){
+      const d=330,mw=110,pw=CW-d-mw;
+      const title=doc.splitTextToSize(item.title||'Quoted Works',d-16);
+      const desc=doc.splitTextToSize(item.description||'',d-16);
+      const measurement=doc.splitTextToSize(item.measurement||'—',mw-14);
+      const price=doc.splitTextToSize(formatEuro(item.price),pw-12);
+      const detailHeight=title.length*11+desc.length*10+25;
+      const measurementHeight=measurement.length*10+20;
+      const priceHeight=price.length*10+20;
+      const h=Math.max(55,detailHeight,measurementHeight,priceHeight);
+      if(y+h>PH-55){ newPage(); tableHeader(); }
+      doc.setDrawColor(...BORDER); doc.rect(M,y,d,h); doc.rect(M+d,y,mw,h); doc.rect(M+d+mw,y,pw,h);
+      doc.setTextColor(...GREEN); doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.text(title,M+8,y+16);
+      doc.setTextColor(...DARK); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text(desc,M+8,y+20+title.length*11);
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.text(measurement,M+d+mw/2,y+17,{align:'center'});
+      doc.setFontSize(8.5); doc.text(price,M+CW-7,y+17,{align:'right'}); y+=h;
+    }
+    function totalRow(label,amount,strong=false){ const x=M+300,w=CW-300,h=strong?36:27; check(h); doc.setFillColor(...(strong?GREEN:LIGHT)); doc.rect(x,y,w,h,'F'); doc.setDrawColor(...BORDER); doc.rect(x,y,w,h); doc.setTextColor(...(strong?WHITE:GREEN)); doc.setFont('helvetica','bold'); doc.setFontSize(strong?11:9); doc.text(label,x+9,y+h/2+4); doc.text(formatEuro(amount),M+CW-9,y+h/2+4,{align:'right'}); y+=h; }
+    function notice(text){ const lines=doc.splitTextToSize(text,CW-20),h=lines.length*10+18; check(h+7); doc.setFillColor(248,252,248); doc.setDrawColor(...BORDER); doc.roundedRect(M,y,CW,h,3,3,'FD'); doc.setTextColor(...DARK); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(lines,M+10,y+15); y+=h+7; }
+    function footer(){ const count=doc.internal.getNumberOfPages(); for(let i=1;i<=count;i++){ doc.setPage(i); doc.setFillColor(...GREEN); doc.rect(0,PH-34,PW,34,'F'); doc.setTextColor(...WHITE); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.text(`www.ecospec.ie | ${quotationEmail || 'info@ecospec.ie'}`,M,PH-14); doc.text(`Page ${i} of ${count}`,PW-M,PH-14,{align:'right'}); } }
+
+    header(true);
+    infoRow('To:',clientName,'Date:',formatDateDDMMYYYY(v('quote_date')||v('date')));
+    infoRow('Address:',clientAddress,'Quotation No.:',v('quote_no'));
+    infoRow('E-mail:',v('email'),'Quotation by:',v('quote_by_display')||v('surveyor'));
+    infoRow('Phone:',v('client_number')||v('customer_number'),'Contact e-mail:',quotationEmail);
+    infoRow('Mobile:',v('quote_mobile'),'','');
+    y+=12; section('Project Location');
+    const loc=doc.splitTextToSize(projectLocation,CW-20), lh=Math.max(42,loc.length*11+22); check(lh); doc.setDrawColor(...BORDER); doc.roundedRect(M,y,CW,lh,3,3); doc.setTextColor(...DARK); doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text(loc,M+10,y+18); y+=lh+12;
+    tableHeader(); items.forEach(itemRow); y+=12; totalRow('Net Quotation',net,true); y+=18;
+    section('Terms and Conditions');
+    notice('Please note that a 50% deposit is required before work commences. The remaining amount is to be paid upon completion.');
+    notice('Ecospec Ltd wishes to notify you that the property should be vacant when spraying is in progress, and for a period afterwards to allow for ventilation.');
+    notice('Data Protection: We collect your personal details in order to provide the highest standard of service to you. Your data will be held in accordance with and for no longer than necessary under Regulation (EU) 2016/679 (General Data Protection Regulation). The Company Secretary is responsible for Data Subject Access Requests and data queries under the Regulation.');
+    notice('Please note that because of continuing price increases of raw materials, we can only guarantee this quotation for 30 days.');
+    footer();
+    const safeClient=(clientName||'Client').replace(/[^a-z0-9_-]+/gi,'_'); const safeQuote=(v('quote_no')||'Quotation').replace(/[^a-z0-9_-]+/gi,'_');
+    doc.save(`${safeClient}_${safeQuote}_${dateForFilename(v('quote_date')||new Date().toISOString().slice(0,10))}_Quotation.pdf`);
+  } catch(error) { console.error(error); alert(error.message || 'The quotation PDF could not be generated.'); }
+  finally { btn.disabled=false; surveyBtn.disabled=false; btn.textContent='Generate Quotation PDF'; msg.style.display='none'; }
+}
+
 </script>
 </body>
 </html>
