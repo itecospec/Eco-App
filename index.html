@@ -92,6 +92,29 @@
   .section-header h2 { font-size: 15px; font-weight: 600; color: #2d6a2d; }
   .section-body { padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
 
+  /* ── Collapsible numbered sections ── */
+  .section.collapsible .section-header {
+    cursor: pointer;
+    border-bottom: none;
+  }
+  .section.collapsible .section-header:hover,
+  .section.collapsible .section-header:focus-visible {
+    background: #e8f5e8;
+  }
+  .section.collapsible .section-header:focus-visible {
+    outline: 3px solid rgba(45, 106, 45, .3);
+    outline-offset: -3px;
+  }
+  .section-toggle-icon {
+    color: #2d6a2d;
+    font-size: 18px;
+    font-weight: 700;
+    transition: transform .2s ease;
+  }
+  .section.collapsible.open .section-toggle-icon { transform: rotate(180deg); }
+  .section.collapsible:not(.open) .section-body { display: none; }
+  .section.collapsible.open .section-header { border-bottom: 1px solid #c8e0c8; }
+
   /* ── Fields ── */
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 13px; color: #4a8c4a; font-weight: 500; }
@@ -305,7 +328,7 @@
 </div>
 
 <div class="top-header">
-  <img id="logo_img" src="Ecospeclogo.png" alt="Ecospec Logo">
+  <img id="logo_img" src="Ecospec logo.png" alt="Ecospec Logo">
 </div>
 <h1>Site Survey</h1>
 
@@ -602,7 +625,7 @@ function loadLogoForPdf() {
 // Default date to today
 document.getElementById('date').value = new Date().toISOString().slice(0, 10);
 
-const ROOF_OPTIONS   = ['SIDE ATTICS','SLOPES','TOP ATTIC','COLLAR','WARM ROOF','COLD ROOF','KNEE WALL'];
+const ROOF_OPTIONS   = ['SIDE ATTICS','SLOPES','TOP ATTIC','COLLAR','Flatroof - Warm roof','Flatroof - Cold roof','Ceilings','KNEE WALL'];
 const CAVITY_OPTIONS = ['CW FULL FILL','CW PARTIAL FILL','HOLLOW BLOCK SPRAY','DRYLINING','TIMBER FRAME'];
 
 let roofCount   = 0;
@@ -1015,6 +1038,43 @@ function formatEuro(amount) {
   return new Intl.NumberFormat('en-IE', { style:'currency', currency:'EUR' }).format(Number(amount) || 0);
 }
 window.addEventListener('DOMContentLoaded', () => {
+  // Keep the page easy to scan by collapsing numbered sections 1–8.
+  document.querySelectorAll('.section').forEach((section, index) => {
+    const header = section.querySelector(':scope > .section-header');
+    const heading = header?.querySelector('h2');
+    const body = section.querySelector(':scope > .section-body');
+    if (!header || !heading || !body || !/^\d+\./.test(heading.textContent.trim())) return;
+
+    const bodyId = body.id || `numbered-section-${index + 1}`;
+    body.id = bodyId;
+    section.classList.add('collapsible');
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
+    header.setAttribute('aria-expanded', 'false');
+    header.setAttribute('aria-controls', bodyId);
+    body.setAttribute('aria-hidden', 'true');
+
+    const icon = document.createElement('span');
+    icon.className = 'section-toggle-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '⌄';
+    header.appendChild(icon);
+
+    const toggleSection = () => {
+      const isOpen = section.classList.toggle('open');
+      header.setAttribute('aria-expanded', String(isOpen));
+      body.setAttribute('aria-hidden', String(!isOpen));
+    };
+
+    header.addEventListener('click', toggleSection);
+    header.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        toggleSection();
+      }
+    });
+  });
+
   const qd = document.getElementById('quote_date');
   if (qd && !qd.value) qd.value = new Date().toISOString().slice(0, 10);
   if (!document.querySelector('#quotationItemsContainer .quotation-item')) addQuotationItem();
