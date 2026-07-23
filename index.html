@@ -1077,7 +1077,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const qd = document.getElementById('quote_date');
   if (qd && !qd.value) qd.value = new Date().toISOString().slice(0, 10);
-  if (!document.querySelector('#quotationItemsContainer .quotation-item')) addQuotationItem();
   updateQuotationContact();
 });
 
@@ -1443,7 +1442,6 @@ async function generateQuotationPDF() {
   btn.disabled = true; surveyBtn.disabled = true; btn.textContent = 'Generating…'; msg.style.display = 'block';
   await new Promise(r => setTimeout(r, 50));
   try {
-    syncSurveyWorksToQuotation(false);
     const items = getQuotationItems();
     if (!items.length) throw new Error('Please add at least one quotation item.');
     const logoPdfData = await loadLogoForPdf();
