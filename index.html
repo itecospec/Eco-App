@@ -525,9 +525,30 @@
   </div>
 </div>
 
-<!-- ── 7. General Notes ── -->
+<!-- ── 7. Estimated Time ── -->
 <div class="section">
-  <div class="section-header"><h2>7. General Notes / Additional Information</h2></div>
+  <div class="section-header"><h2>7. Estimated Hours / Days</h2></div>
+  <div class="section-body">
+    <div class="row2">
+      <div class="field">
+        <label>Estimated Hours</label>
+        <input type="number" id="estimated_hours" min="0" step="0.5" placeholder="e.g. 8">
+      </div>
+      <div class="field">
+        <label>Estimated Days</label>
+        <input type="number" id="estimated_days" min="0" step="0.5" placeholder="e.g. 2">
+      </div>
+    </div>
+    <div class="field">
+      <label>Estimated Time Notes</label>
+      <textarea id="estimated_time_notes" placeholder="Crew size, access considerations, expected delays or other timing notes..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ── 8. General Notes ── -->
+<div class="section">
+  <div class="section-header"><h2>8. General Notes / Additional Information</h2></div>
   <div class="section-body">
     <div class="field">
       <label>Notes</label>
@@ -540,7 +561,7 @@
 
 <!-- ── Quotation Details ── -->
 <div class="section">
-  <div class="section-header"><h2>8. Quotation</h2></div>
+  <div class="section-header"><h2>9. Quotation</h2></div>
   <div class="section-body">
     <div class="row2">
       <div class="field"><label>Quotation Number</label><input type="text" id="quote_no" placeholder="e.g. ECO-Q-001"></div>
@@ -1420,7 +1441,13 @@ async function generatePDF() {
   photoPages('measurements', 'Measurements Photos');
   y += 8;
 
-  sectionBanner('7. General Notes / Additional Information');
+  sectionBanner('7. Estimated Hours / Days');
+  fieldRow('Estimated Hours', v('estimated_hours'), false);
+  fieldRow('Estimated Days',  v('estimated_days'),  true);
+  noteBlock('Estimated Time Notes', v('estimated_time_notes'));
+  y += 8;
+
+  sectionBanner('8. General Notes / Additional Information');
   noteBlock('Notes', v('general_notes'));
   photoPages('recommendations', 'Additional Information Photos');
 
