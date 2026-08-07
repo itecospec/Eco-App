@@ -1150,6 +1150,28 @@ function openPinDrop() {
 /* ─────────────────────────────────────────────
    Dynamic insulation area cards
 ───────────────────────────────────────────── */
+function updateInsulationMaterialOptions(type, count) {
+  const material = v(`${type}_material${count}`);
+  const foamField = document.getElementById(`${type}_foam_field${count}`);
+  const woolField = document.getElementById(`${type}_wool_field${count}`);
+
+  if (foamField) foamField.style.display = material === 'Spray Foam' ? '' : 'none';
+  if (woolField) woolField.style.display = (material === 'Wool' || material === 'Mineral Wool') ? '' : 'none';
+
+  // Clear hidden specifications so old choices are not exported by mistake.
+  if (material !== 'Spray Foam') {
+    document.querySelectorAll(`input[name="${type}_foam_type${count}"]`).forEach(input => {
+      input.checked = false;
+    });
+  }
+  if (material !== 'Wool' && material !== 'Mineral Wool') {
+    const woolType = document.getElementById(`${type}_wool_type${count}`);
+    if (woolType) woolType.value = '';
+  }
+
+  syncSurveyWorksToQuotation(false);
+}
+
 function addInsulationArea(type) {
   const config = {
     roof: { container: 'roofContainer', options: ROOF_OPTIONS, prefix: 'roof', label: 'Roof Area' },
@@ -1162,16 +1184,46 @@ function addInsulationArea(type) {
   const container = document.getElementById(config.container);
   const card = document.createElement('div');
   card.className = 'area-card';
+
   const materialField = type === 'roof' ? `
-    <select id="roof_material${count}" onchange="syncSurveyWorksToQuotation(false)">
+    <select id="roof_material${count}" onchange="updateInsulationMaterialOptions('roof', ${count})">
       <option value="">Select…</option><option value="Spray Foam">Spray Foam</option><option value="Wool">Wool</option>
     </select>` : type === 'cavity' ? `
     <select id="cavity_material${count}" onchange="syncSurveyWorksToQuotation(false)">
       <option value="">Select…</option><option value="Bead">Bead</option><option value="Walltite">Walltite</option><option value="Firetite">Firetite</option>
     </select>` : `
-    <select id="floor_material${count}" onchange="syncSurveyWorksToQuotation(false)">
+    <select id="floor_material${count}" onchange="updateInsulationMaterialOptions('floor', ${count})">
       <option value="">Select…</option><option value="Mineral Wool">Mineral Wool</option><option value="Spray Foam">Spray Foam</option><option value="Rigid Board">Rigid Board</option><option value="Other">Other</option>
     </select>`;
+
+  const specificationFields = type === 'roof' || type === 'floor' ? `
+      <div class="field" id="${config.prefix}_foam_field${count}" style="display:none">
+        <label>Spray Foam Type</label>
+        <div class="checkrow">
+          <label><input type="radio" name="${config.prefix}_foam_type${count}" value="Open Cell" onchange="syncSurveyWorksToQuotation(false)"> Open Cell</label>
+          <label><input type="radio" name="${config.prefix}_foam_type${count}" value="Closed Cell" onchange="syncSurveyWorksToQuotation(false)"> Closed Cell</label>
+        </div>
+      </div>
+      <div class="field" id="${config.prefix}_wool_field${count}" style="display:none">
+        <label>Wool Type</label>
+        <select id="${config.prefix}_wool_type${count}">
+          <option value="">Select wool type…</option>
+          <option value="Starflex">Starflex</option>
+          <option value="Knauf">Knauf</option>
+          <option value="Isover">Isover</option>
+          <option value="Volcalis">Volcalis</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>` : '';
+
+  const drillingField = type === 'cavity' ? `
+      <div class="field">
+        <label>Drilling Location</label>
+        <div class="checkrow">
+          <label><input type="checkbox" id="cavity_drill_internal${count}"> Internal</label>
+          <label><input type="checkbox" id="cavity_drill_external${count}"> External</label>
+        </div>
+      </div>` : '';
 
   card.innerHTML = `
     <h3>${config.label} ${count}</h3>
@@ -1180,6 +1232,8 @@ function addInsulationArea(type) {
       <div class="field"><label>SQM</label><input type="text" id="${config.prefix}_sqm${count}" inputmode="decimal" placeholder="SQM" onchange="normaliseSurveyUnits(); syncSurveyWorksToQuotation(false)"></div>
       <div class="field"><label>Depth</label><input type="text" id="${config.prefix}_depth${count}" inputmode="decimal" placeholder="Depth" onchange="normaliseSurveyUnits()"></div>
       <div class="field"><label>${type === 'roof' ? 'Attic Insulation Type' : 'Material Type'}</label>${materialField}</div>
+      ${specificationFields}
+      ${drillingField}
       <div class="field notes"><label>Notes</label><textarea id="${config.prefix}_notes${count}" placeholder="Notes"></textarea></div>
     </div>`;
   container.appendChild(card);
@@ -1517,38 +1571,79 @@ function getSurveyQuotationTemplates() {
     if (!sqm && !selectedMaterial) continue;
 
     const material = selectedMaterial || 'Unspecified';
-    if (!roofGroups[material]) roofGroups[material] = [];
-    if (sqm) roofGroups[material].push(addUnitSuffix(sqm, 'sqm'));
+    const foamType = material === 'Spray Foam' ? radioVal(`roof_foam_type${i}`) : '';
+    // Wool brand/type is deliberately survey-only. Spray foam cell type is
+    // carried to the quotation as requested.
+    const groupKey = material === 'Spray Foam' && foamType
+      ? `${material} – ${foamType}`
+      : material;
+
+    if (!roofGroups[groupKey]) {
+      roofGroups[groupKey] = { material, foamType, measurements: [] };
+    }
+    if (sqm) roofGroups[groupKey].measurements.push(addUnitSuffix(sqm, 'sqm'));
   }
 
-  Object.entries(roofGroups).forEach(([material, measurements]) => {
+  Object.entries(roofGroups).forEach(([groupKey, group]) => {
+    const { material, foamType, measurements } = group;
+    let title = 'Roof / Attic Insulation';
+    let description = SURVEY_QUOTE_DETAILS[material] || 'Roof or attic insulation to the surveyed area using the agreed insulation system and specified depth.';
+
+    if (material === 'Wool') {
+      title = 'Attic Insulation – Wool';
+    } else if (material === 'Spray Foam') {
+      title = foamType
+        ? `Attic Insulation – ${foamType} Spray Foam`
+        : 'Attic Insulation – Spray Foam';
+
+      if (foamType === 'Closed Cell') {
+        description = 'Vent carded and sprayed with closed cell spray foam insulation to the underside of the roof.';
+      } else if (foamType === 'Open Cell') {
+        description = 'Vent carded and sprayed with open cell spray foam insulation to the underside of the roof.';
+      }
+    }
+
     templates.push({
-      key: `survey-roof-${material.toLowerCase().replace(/\s+/g, '-')}`,
-      title: material === 'Wool' ? 'Attic Insulation – Wool' : material === 'Spray Foam' ? 'Attic Insulation – Spray Foam' : 'Roof / Attic Insulation',
-      description: SURVEY_QUOTE_DETAILS[material] || 'Roof or attic insulation to the surveyed area using the agreed insulation system and specified depth.',
+      key: `survey-roof-${groupKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      title,
+      description,
       measurement: joinMeasurements(measurements)
     });
   });
 
-  const floorMeasurements = [];
+  const floorGroups = {};
   for (let i = 1; i <= floorCount; i++) {
     const sqm = v(`floor_sqm${i}`).trim();
     const material = v(`floor_material${i}`).trim();
-    if (sqm || material || v(`floor_notes${i}`).trim()) {
-      floorMeasurements.push(
-        sqm ? addUnitSuffix(sqm, 'sqm') : ''
-      );
+    const notes = v(`floor_notes${i}`).trim();
+    if (!sqm && !material && !notes) continue;
+
+    const foamType = material === 'Spray Foam' ? radioVal(`floor_foam_type${i}`) : '';
+    const groupKey = material === 'Spray Foam' && foamType
+      ? `Spray Foam – ${foamType}`
+      : 'Suspended Floor';
+
+    if (!floorGroups[groupKey]) {
+      floorGroups[groupKey] = { foamType, measurements: [] };
     }
+    if (sqm) floorGroups[groupKey].measurements.push(addUnitSuffix(sqm, 'sqm'));
   }
 
-  if (floorMeasurements.length) {
+  Object.entries(floorGroups).forEach(([groupKey, group]) => {
+    let description = SURVEY_QUOTE_DETAILS['Suspended Floor'];
+    if (group.foamType) {
+      description += ` Spray foam type: ${group.foamType}.`;
+    }
+
     templates.push({
-      key: 'survey-suspended-floor',
-      title: 'Suspended Floor Insulation',
-      description: SURVEY_QUOTE_DETAILS['Suspended Floor'],
-      measurement: joinMeasurements(floorMeasurements)
+      key: `survey-suspended-floor-${groupKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      title: group.foamType
+        ? `Suspended Floor Insulation – ${group.foamType} Spray Foam`
+        : 'Suspended Floor Insulation',
+      description,
+      measurement: joinMeasurements(group.measurements)
     });
-  }
+  });
 
   return templates;
 }
@@ -2121,12 +2216,28 @@ async function generatePDF() {
 
   const insulationRows = [];
   for (let i = 1; i <= roofCount; i++) {
-    if (v('roof_type'+i) || v('roof_sqm'+i) || v('roof_depth'+i) || v('roof_material'+i) || v('roof_notes'+i))
-      insulationRows.push(['Roof Insulation', v('roof_type'+i), v('roof_sqm'+i), v('roof_depth'+i), v('roof_material'+i), v('roof_notes'+i)]);
+    const material = v('roof_material'+i);
+    const foamType = material === 'Spray Foam' ? radioVal(`roof_foam_type${i}`) : '';
+    const woolType = (material === 'Wool' || material === 'Mineral Wool') ? v(`roof_wool_type${i}`) : '';
+    const materialDisplay = [
+      material,
+      foamType || woolType
+    ].filter(Boolean).join(' – ');
+
+    if (v('roof_type'+i) || v('roof_sqm'+i) || v('roof_depth'+i) || material || foamType || woolType || v('roof_notes'+i))
+      insulationRows.push(['Roof Insulation', v('roof_type'+i), v('roof_sqm'+i), v('roof_depth'+i), materialDisplay, v('roof_notes'+i)]);
   }
   for (let i = 1; i <= cavityCount; i++) {
-    if (v('cavity_type'+i) || v('cavity_sqm'+i) || v('cavity_depth'+i) || v('cavity_material'+i) || v('cavity_notes'+i))
-      insulationRows.push(['Cavity Wall', v('cavity_type'+i), v('cavity_sqm'+i), v('cavity_depth'+i), v('cavity_material'+i), v('cavity_notes'+i)]);
+    const drilling = [];
+    if (document.getElementById(`cavity_drill_internal${i}`)?.checked) drilling.push('Internal');
+    if (document.getElementById(`cavity_drill_external${i}`)?.checked) drilling.push('External');
+    const cavityNotes = [
+      drilling.length ? `Drilling: ${drilling.join(' & ')}` : '',
+      v('cavity_notes'+i)
+    ].filter(Boolean).join(' | ');
+
+    if (v('cavity_type'+i) || v('cavity_sqm'+i) || v('cavity_depth'+i) || v('cavity_material'+i) || drilling.length || v('cavity_notes'+i))
+      insulationRows.push(['Cavity Wall', v('cavity_type'+i), v('cavity_sqm'+i), v('cavity_depth'+i), v('cavity_material'+i), cavityNotes]);
   }
   table(['Category', 'Area Type', 'SQM', 'Depth', 'Material', 'Notes'], insulationRows);
 
@@ -2135,7 +2246,18 @@ async function generatePDF() {
 
   sectionBanner('Suspended Floor Insulation');
   for (let i = 1; i <= floorCount; i++) {
-    fieldRow(`Suspended Floor Area ${i}`, [v(`floor_type${i}`), v(`floor_sqm${i}`) && `${v(`floor_sqm${i}`)} SQM`, v(`floor_depth${i}`) && `Depth: ${v(`floor_depth${i}`)}`, v(`floor_material${i}`), v(`floor_notes${i}`)].filter(Boolean).join(' | '), true);
+    const material = v(`floor_material${i}`);
+    const foamType = material === 'Spray Foam' ? radioVal(`floor_foam_type${i}`) : '';
+    const woolType = (material === 'Wool' || material === 'Mineral Wool') ? v(`floor_wool_type${i}`) : '';
+    const materialDisplay = [material, foamType || woolType].filter(Boolean).join(' – ');
+
+    fieldRow(`Suspended Floor Area ${i}`, [
+      v(`floor_type${i}`),
+      v(`floor_sqm${i}`) && `${v(`floor_sqm${i}`)} SQM`,
+      v(`floor_depth${i}`) && `Depth: ${v(`floor_depth${i}`)}`,
+      materialDisplay,
+      v(`floor_notes${i}`)
+    ].filter(Boolean).join(' | '), true);
   }
   photoPages('floor', 'Suspended Floor Photos');
 
