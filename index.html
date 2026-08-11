@@ -297,6 +297,9 @@
   .quotation-item { border:1px solid #c8e0c8; border-radius:10px; background:#f8fff8; overflow:hidden; margin-bottom:.75rem; }
   .quotation-item-header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:.7rem .85rem; background:#e8f5e8; border-bottom:1px solid #c8e0c8; }
   .quotation-item-header strong { color:#2d6a2d; font-size:14px; }
+  .quotation-item.quotation-option { border-color:#79b879; }
+  .quotation-item.quotation-option .quotation-item-header { background:#dff0df; }
+  .quotation-item.quotation-option .quotation-item-header strong { color:#155d2d; }
   .remove-quote-item { border:0; background:#c62828; color:#fff; padding:5px 10px; border-radius:7px; cursor:pointer; font-weight:700; }
   .quotation-item-fields { display:grid; grid-template-columns:1fr 145px 145px; gap:.75rem; padding:.85rem; }
   .quotation-item-fields .wide { grid-column:1 / -1; }
@@ -803,9 +806,9 @@
     <button type="button" onclick="addInsulationArea('roof')" class="inline-btn">+ Add Roof Area</button>
     <div id="photos_roof"></div>
 
-    <div class="subsection-label">Cavity Wall Insulation</div>
+    <div class="subsection-label">Wall Insulation</div>
     <div id="cavityContainer"></div>
-    <button type="button" onclick="addInsulationArea('cavity')" class="inline-btn">+ Add Cavity Wall Area</button>
+    <button type="button" onclick="addInsulationArea('cavity')" class="inline-btn">+ Add Wall Area</button>
     <div id="photos_cavity"></div>
 
     <div class="subsection-label">Suspended Floor Insulation</div>
@@ -1154,9 +1157,11 @@ function updateInsulationMaterialOptions(type, count) {
   const material = v(`${type}_material${count}`);
   const foamField = document.getElementById(`${type}_foam_field${count}`);
   const woolField = document.getElementById(`${type}_wool_field${count}`);
+  const quoteOptionsField = document.getElementById(`${type}_quote_options_field${count}`);
 
   if (foamField) foamField.style.display = material === 'Spray Foam' ? '' : 'none';
   if (woolField) woolField.style.display = (material === 'Wool' || material === 'Mineral Wool') ? '' : 'none';
+  if (quoteOptionsField) quoteOptionsField.style.display = material === 'Quote Options' ? '' : 'none';
 
   // Clear hidden specifications so old choices are not exported by mistake.
   if (material !== 'Spray Foam') {
@@ -1175,7 +1180,7 @@ function updateInsulationMaterialOptions(type, count) {
 function addInsulationArea(type) {
   const config = {
     roof: { container: 'roofContainer', options: ROOF_OPTIONS, prefix: 'roof', label: 'Roof Area' },
-    cavity: { container: 'cavityContainer', options: CAVITY_OPTIONS, prefix: 'cavity', label: 'Cavity Wall Area' },
+    cavity: { container: 'cavityContainer', options: CAVITY_OPTIONS, prefix: 'cavity', label: 'Wall Area' },
     floor: { container: 'floorContainer', options: FLOOR_OPTIONS, prefix: 'floor', label: 'Suspended Floor Area' }
   }[type];
   if (!config) return;
@@ -1187,10 +1192,10 @@ function addInsulationArea(type) {
 
   const materialField = type === 'roof' ? `
     <select id="roof_material${count}" onchange="updateInsulationMaterialOptions('roof', ${count})">
-      <option value="">Select…</option><option value="Spray Foam">Spray Foam</option><option value="Wool">Wool</option>
+      <option value="">Select…</option><option value="Spray Foam">Spray Foam</option><option value="Wool">Wool</option><option value="Quote Options">Quote Options — Wool or Spray Foam</option>
     </select>` : type === 'cavity' ? `
-    <select id="cavity_material${count}" onchange="syncSurveyWorksToQuotation(false)">
-      <option value="">Select…</option><option value="Bead">Bead</option><option value="Walltite">Walltite</option><option value="Firetite">Firetite</option>
+    <select id="cavity_material${count}" onchange="updateInsulationMaterialOptions('cavity', ${count})">
+      <option value="">Select…</option><option value="Bead">Bead</option><option value="Walltite">Walltite</option><option value="Firetite">Firetite</option><option value="Closed Cell">Closed Cell</option><option value="Quote Options">Quote Options — choose wall systems</option>
     </select>` : `
     <select id="floor_material${count}" onchange="updateInsulationMaterialOptions('floor', ${count})">
       <option value="">Select…</option><option value="Mineral Wool">Mineral Wool</option><option value="Spray Foam">Spray Foam</option><option value="Rigid Board">Rigid Board</option><option value="Other">Other</option>
@@ -1216,6 +1221,24 @@ function addInsulationArea(type) {
         </select>
       </div>` : '';
 
+  const quotationOptionsField = type === 'roof' ? `
+      <div class="field wide" id="roof_quote_options_field${count}" style="display:none">
+        <label>Alternative Quotation Options</label>
+        <div class="checkrow">
+          <label><input type="checkbox" name="roof_quote_material${count}" value="Wool" checked onchange="syncSurveyWorksToQuotation(false)"> Wool</label>
+          <label><input type="checkbox" name="roof_quote_material${count}" value="Spray Foam" checked onchange="syncSurveyWorksToQuotation(false)"> Spray Foam</label>
+        </div>
+      </div>` : type === 'cavity' ? `
+      <div class="field wide" id="cavity_quote_options_field${count}" style="display:none">
+        <label>Alternative Quotation Options</label>
+        <div class="checkrow">
+          <label><input type="checkbox" name="cavity_quote_material${count}" value="Bead" checked onchange="syncSurveyWorksToQuotation(false)"> Bead</label>
+          <label><input type="checkbox" name="cavity_quote_material${count}" value="Walltite" checked onchange="syncSurveyWorksToQuotation(false)"> Walltite</label>
+          <label><input type="checkbox" name="cavity_quote_material${count}" value="Firetite" checked onchange="syncSurveyWorksToQuotation(false)"> Firetite</label>
+        </div>
+        <small>Closed Cell is available only as a standalone wall quotation.</small>
+      </div>` : '';
+
   const drillingField = type === 'cavity' ? `
       <div class="field">
         <label>Drilling Location</label>
@@ -1233,6 +1256,7 @@ function addInsulationArea(type) {
       <div class="field"><label>Depth</label><input type="text" id="${config.prefix}_depth${count}" inputmode="decimal" placeholder="Depth" onchange="normaliseSurveyUnits()"></div>
       <div class="field"><label>${type === 'roof' ? 'Attic Insulation Type' : 'Material Type'}</label>${materialField}</div>
       ${specificationFields}
+      ${quotationOptionsField}
       ${drillingField}
       <div class="field notes"><label>Notes</label><textarea id="${config.prefix}_notes${count}" placeholder="Notes"></textarea></div>
     </div>`;
@@ -1251,7 +1275,7 @@ const PHOTO_SECTIONS = [
   ['survey',          'Survey Details Photos'],
   ['project',         'Project Type Photos'],
   ['roof',            'Roof Photos'],
-  ['cavity',          'Cavity Wall Photos'],
+  ['cavity',          'Wall Insulation Photos'],
   ['floor',           'Suspended Floor Photos'],
   ['airtightness',    'Airtightness Photos'],
   ['grant',           'Grant Spec Photos'],
@@ -1406,6 +1430,11 @@ function addQuotationItem(data = {}) {
   const container = document.getElementById('quotationItemsContainer');
   const item = document.createElement('div');
   item.className = 'quotation-item';
+  if (data.optionGroup) {
+    item.dataset.optionGroup = data.optionGroup;
+    item.dataset.optionNumber = String(data.optionNumber || '');
+    item.classList.add('quotation-option');
+  }
   item.innerHTML = `
     <div class="quotation-item-header"><strong>Quotation Item ${quotationItemCount}</strong><button type="button" class="remove-quote-item" onclick="removeQuotationItem(this)">Remove</button></div>
     <div class="quotation-item-fields">
@@ -1425,8 +1454,29 @@ function removeQuotationItem(button) {
   updateQuotationTotals();
 }
 function renumberQuotationItems() {
+  const optionCounters = {};
+
   document.querySelectorAll('#quotationItemsContainer .quotation-item').forEach((item, i) => {
-    item.querySelector('strong').textContent = `Quotation Item ${i + 1}`;
+    const group = item.dataset.optionGroup || '';
+    const heading = item.querySelector('strong');
+    if (!heading) return;
+
+    if (group) {
+      optionCounters[group] = (optionCounters[group] || 0) + 1;
+      item.dataset.optionNumber = String(optionCounters[group]);
+      item.classList.add('quotation-option');
+
+      const groupLabel = group === 'wall'
+        ? 'Wall'
+        : group === 'attic'
+          ? 'Attic'
+          : 'Quotation';
+
+      heading.textContent = `${groupLabel} Option ${optionCounters[group]}`;
+    } else {
+      item.classList.remove('quotation-option');
+      heading.textContent = `Quotation Item ${i + 1}`;
+    }
   });
 }
 function getQuotationItems() {
@@ -1434,7 +1484,9 @@ function getQuotationItems() {
     title: item.querySelector('.quote-item-title').value.trim(),
     description: item.querySelector('.quote-item-description').value.trim(),
     measurement: item.querySelector('.quote-item-measurement').value.trim(),
-    price: parseFloat(item.querySelector('.quote-item-price').value) || 0
+    price: parseFloat(item.querySelector('.quote-item-price').value) || 0,
+    optionGroup: item.dataset.optionGroup || '',
+    optionNumber: Number(item.dataset.optionNumber) || 0
   })).filter(item => item.title || item.description || item.measurement || item.price);
 }
 function getQuotationType() { return radioVal('quotation_type') || 'general'; }
@@ -1446,8 +1498,24 @@ function updateQuotationType() {
   updateQuotationTotals();
 }
 function updateQuotationTotals() {
-  const total = getQuotationItems().reduce((sum, item) => sum + item.price, 0);
-  document.getElementById('quote_net_total').value = total.toFixed(2);
+  const items = getQuotationItems();
+  const hasOptions = items.some(item => item.optionGroup);
+  const totalLabel = document.getElementById('quote_total_label');
+  const totalField = document.getElementById('quote_net_total');
+
+  if (hasOptions) {
+    if (totalLabel) totalLabel.textContent = 'Option prices shown individually';
+    if (totalField) totalField.value = '';
+    return;
+  }
+
+  const total = items.reduce((sum, item) => sum + item.price, 0);
+  if (totalLabel) {
+    totalLabel.textContent = getQuotationType() === 'builder'
+      ? 'Total €'
+      : 'Total Including VAT €';
+  }
+  if (totalField) totalField.value = total.toFixed(2);
 }
 
 
@@ -1506,6 +1574,7 @@ const SURVEY_QUOTE_DETAILS = {
   Bead: 'Cavity walls pumped with Korefill Bonded Bead, with thermal conductivity of 0.033 W/m²K.',
   Walltite: 'Cavity walls injected with Walltite CV 100 closed cell foam.',
   Firetite: 'Cavity walls injected with Firetite insulation.',
+  'Closed Cell': 'Walls sprayed with closed cell spray foam insulation.',
   Airtightness: 'All windows and external doors sealed with air tightness tapes and sealants.\nComplete ceiling areas sealed with air tightness membrane and associated sealants.',
   'Spray Foam': 'Vent carded and sprayed with open cell spray foam insulation to the underside of the roof.',
   Wool: 'Attic insulated with mineral wool insulation to the specified depth, including all required ventilation clearances.',
@@ -1517,6 +1586,13 @@ function joinMeasurements(values) {
   return [...new Set(cleaned)].join(', ');
 }
 
+function checkedQuotationMaterials(name, excludedMaterials = []) {
+  const excluded = new Set(excludedMaterials);
+  return [...document.querySelectorAll(`input[name="${name}"]:checked`)]
+    .map(input => input.value)
+    .filter(value => value && !excluded.has(value));
+}
+
 function getSurveyQuotationTemplates() {
   const templates = [];
   const cavityGroups = {};
@@ -1526,17 +1602,45 @@ function getSurveyQuotationTemplates() {
     const selectedMaterial = v(`cavity_material${i}`).trim();
     if (!sqm && !selectedMaterial) continue;
 
-    const material = selectedMaterial || 'Unspecified';
-    if (!cavityGroups[material]) cavityGroups[material] = [];
-    if (sqm) cavityGroups[material].push(addUnitSuffix(sqm, 'sqm'));
+    const isOptionQuotation = selectedMaterial === 'Quote Options';
+    const materials = isOptionQuotation
+      ? checkedQuotationMaterials(
+          `cavity_quote_material${i}`,
+          ['Closed Cell']
+        )
+      : [selectedMaterial || 'Unspecified'];
+
+    materials.forEach(material => {
+      const groupKey = `${isOptionQuotation ? 'option' : 'single'}::${material}`;
+      if (!cavityGroups[groupKey]) {
+        cavityGroups[groupKey] = {
+          material,
+          optionGroup: isOptionQuotation ? 'wall' : '',
+          measurements: []
+        };
+      }
+      if (sqm) {
+        cavityGroups[groupKey].measurements.push(
+          addUnitSuffix(sqm, 'sqm')
+        );
+      }
+    });
   }
 
-  Object.entries(cavityGroups).forEach(([material, measurements]) => {
+  let wallOptionNumber = 0;
+  Object.entries(cavityGroups).forEach(([groupKey, group]) => {
+    const { material, measurements, optionGroup } = group;
+    const optionNumber = optionGroup ? ++wallOptionNumber : 0;
+
     templates.push({
-      key: `survey-cavity-${material.toLowerCase().replace(/\s+/g, '-')}`,
-      title: 'Cavity Walls',
-      description: SURVEY_QUOTE_DETAILS[material] || 'Cavity wall insulation to the surveyed area using the agreed insulation system.',
-      measurement: joinMeasurements(measurements)
+      key: `survey-cavity-${groupKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      title: material === 'Unspecified'
+        ? 'Wall Insulation'
+        : `Wall Insulation – ${material}`,
+      description: SURVEY_QUOTE_DETAILS[material] || 'Wall insulation to the surveyed area using the agreed insulation system.',
+      measurement: joinMeasurements(measurements),
+      optionGroup,
+      optionNumber
     });
   });
 
@@ -1570,22 +1674,38 @@ function getSurveyQuotationTemplates() {
     const selectedMaterial = v(`roof_material${i}`).trim();
     if (!sqm && !selectedMaterial) continue;
 
-    const material = selectedMaterial || 'Unspecified';
-    const foamType = material === 'Spray Foam' ? radioVal(`roof_foam_type${i}`) : '';
-    // Wool brand/type is deliberately survey-only. Spray foam cell type is
-    // carried to the quotation as requested.
-    const groupKey = material === 'Spray Foam' && foamType
-      ? `${material} – ${foamType}`
-      : material;
+    const isOptionQuotation = selectedMaterial === 'Quote Options';
+    const materials = isOptionQuotation
+      ? checkedQuotationMaterials(`roof_quote_material${i}`)
+      : [selectedMaterial || 'Unspecified'];
 
-    if (!roofGroups[groupKey]) {
-      roofGroups[groupKey] = { material, foamType, measurements: [] };
-    }
-    if (sqm) roofGroups[groupKey].measurements.push(addUnitSuffix(sqm, 'sqm'));
+    materials.forEach(material => {
+      const foamType = material === 'Spray Foam' && selectedMaterial !== 'Quote Options'
+        ? radioVal(`roof_foam_type${i}`)
+        : '';
+      // Wool brand/type is deliberately survey-only. Spray foam cell type is
+      // carried to the quotation when a single spray foam system is selected.
+      const materialKey = material === 'Spray Foam' && foamType
+        ? `${material} – ${foamType}`
+        : material;
+      const groupKey = `${isOptionQuotation ? 'option' : 'single'}::${materialKey}`;
+
+      if (!roofGroups[groupKey]) {
+        roofGroups[groupKey] = {
+          material,
+          foamType,
+          optionGroup: isOptionQuotation ? 'attic' : '',
+          measurements: []
+        };
+      }
+      if (sqm) roofGroups[groupKey].measurements.push(addUnitSuffix(sqm, 'sqm'));
+    });
   }
 
+  let atticOptionNumber = 0;
   Object.entries(roofGroups).forEach(([groupKey, group]) => {
-    const { material, foamType, measurements } = group;
+    const { material, foamType, measurements, optionGroup } = group;
+    const optionNumber = optionGroup ? ++atticOptionNumber : 0;
     let title = 'Roof / Attic Insulation';
     let description = SURVEY_QUOTE_DETAILS[material] || 'Roof or attic insulation to the surveyed area using the agreed insulation system and specified depth.';
 
@@ -1607,7 +1727,9 @@ function getSurveyQuotationTemplates() {
       key: `survey-roof-${groupKey.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
       title,
       description,
-      measurement: joinMeasurements(measurements)
+      measurement: joinMeasurements(measurements),
+      optionGroup,
+      optionNumber
     });
   });
 
@@ -1655,7 +1777,10 @@ function syncSurveyWorksToQuotation(showMessage = false) {
 
   function categoryFromText(value) {
     const text = String(value || '').toLowerCase();
-    if (text.includes('cavity')) return 'cavity';
+    if (
+      text.includes('cavity') ||
+      text.includes('wall insulation')
+    ) return 'cavity';
     if (text.includes('roof') || text.includes('attic')) return 'roof';
     if (text.includes('suspended') || text.includes('floor')) return 'floor';
     if (
@@ -1730,6 +1855,15 @@ function syncSurveyWorksToQuotation(showMessage = false) {
     if (!item) return;
 
     item.dataset.surveyKey = template.key;
+    if (template.optionGroup) {
+      item.dataset.optionGroup = template.optionGroup;
+      item.dataset.optionNumber = String(template.optionNumber || '');
+      item.classList.add('quotation-option');
+    } else {
+      delete item.dataset.optionGroup;
+      delete item.dataset.optionNumber;
+      item.classList.remove('quotation-option');
+    }
     claimedItems.add(item);
 
     const title = item.querySelector('.quote-item-title');
@@ -1781,7 +1915,7 @@ function syncSurveyWorksToQuotation(showMessage = false) {
     alert(
       templates.length
         ? 'Survey measurements copied to the quotation.'
-        : 'No roof, cavity wall, suspended floor or air tightness survey details were found.'
+        : 'No roof, wall, suspended floor or air tightness survey details were found.'
     );
   }
 }
@@ -2219,10 +2353,12 @@ async function generatePDF() {
     const material = v('roof_material'+i);
     const foamType = material === 'Spray Foam' ? radioVal(`roof_foam_type${i}`) : '';
     const woolType = (material === 'Wool' || material === 'Mineral Wool') ? v(`roof_wool_type${i}`) : '';
-    const materialDisplay = [
-      material,
-      foamType || woolType
-    ].filter(Boolean).join(' – ');
+    const alternativeMaterials = material === 'Quote Options'
+      ? checkedQuotationMaterials(`roof_quote_material${i}`)
+      : [];
+    const materialDisplay = material === 'Quote Options'
+      ? `Quote Options – ${alternativeMaterials.join(' or ')}`
+      : [material, foamType || woolType].filter(Boolean).join(' – ');
 
     if (v('roof_type'+i) || v('roof_sqm'+i) || v('roof_depth'+i) || material || foamType || woolType || v('roof_notes'+i))
       insulationRows.push(['Roof Insulation', v('roof_type'+i), v('roof_sqm'+i), v('roof_depth'+i), materialDisplay, v('roof_notes'+i)]);
@@ -2236,13 +2372,21 @@ async function generatePDF() {
       v('cavity_notes'+i)
     ].filter(Boolean).join(' | ');
 
+    const cavityMaterial = v('cavity_material'+i);
+    const alternativeMaterials = cavityMaterial === 'Quote Options'
+      ? checkedQuotationMaterials(`cavity_quote_material${i}`)
+      : [];
+    const cavityMaterialDisplay = cavityMaterial === 'Quote Options'
+      ? `Quote Options – ${alternativeMaterials.join(' or ')}`
+      : cavityMaterial;
+
     if (v('cavity_type'+i) || v('cavity_sqm'+i) || v('cavity_depth'+i) || v('cavity_material'+i) || drilling.length || v('cavity_notes'+i))
-      insulationRows.push(['Cavity Wall', v('cavity_type'+i), v('cavity_sqm'+i), v('cavity_depth'+i), v('cavity_material'+i), cavityNotes]);
+      insulationRows.push(['Wall Insulation', v('cavity_type'+i), v('cavity_sqm'+i), v('cavity_depth'+i), cavityMaterialDisplay, cavityNotes]);
   }
   table(['Category', 'Area Type', 'SQM', 'Depth', 'Material', 'Notes'], insulationRows);
 
   photoPages('roof',   'Roof Photos');
-  photoPages('cavity', 'Cavity Wall Photos');
+  photoPages('cavity', 'Wall Insulation Photos');
 
   sectionBanner('Suspended Floor Insulation');
   for (let i = 1; i <= floorCount; i++) {
@@ -2397,6 +2541,7 @@ async function generateQuotationExcel() {
     }
 
     const isBuilder = getQuotationType() === 'builder';
+    const hasOptions = items.some(item => item.optionGroup);
     const templateBase64 = isBuilder
       ? BUILDER_QUOTATION_TEMPLATE_B64
       : QUOTATION_TEMPLATE_B64;
@@ -2430,6 +2575,15 @@ async function generateQuotationExcel() {
     const stylesXml = stylesFile
       ? parser.parseFromString(
           await stylesFile.async('string'),
+          'application/xml'
+        )
+      : null;
+
+    const workbookPath = 'xl/workbook.xml';
+    const workbookFile = zip.file(workbookPath);
+    const workbookXml = workbookFile
+      ? parser.parseFromString(
+          await workbookFile.async('string'),
           'application/xml'
         )
       : null;
@@ -2593,6 +2747,59 @@ async function generateQuotationExcel() {
       cell.appendChild(inline);
     }
 
+    function setQuotationDescription(reference, heading, details) {
+      const cell = getOrCreateCell(reference);
+      removeValueNodes(cell);
+
+      const headingText = String(heading || '').trim();
+      const detailsText = String(details || '').trim();
+      if (!headingText && !detailsText) {
+        cell.removeAttribute('t');
+        return;
+      }
+
+      cell.setAttribute('t', 'inlineStr');
+      const inline = xml.createElementNS(ns, 'is');
+
+      function addRun(value, bold) {
+        if (!value) return;
+
+        const run = xml.createElementNS(ns, 'r');
+        const properties = xml.createElementNS(ns, 'rPr');
+
+        const font = xml.createElementNS(ns, 'rFont');
+        font.setAttribute('val', 'Times New Roman');
+        properties.appendChild(font);
+
+        const family = xml.createElementNS(ns, 'family');
+        family.setAttribute('val', '1');
+        properties.appendChild(family);
+
+        if (bold) {
+          properties.appendChild(xml.createElementNS(ns, 'b'));
+        }
+
+        const size = xml.createElementNS(ns, 'sz');
+        size.setAttribute('val', '12');
+        properties.appendChild(size);
+
+        const text = xml.createElementNS(ns, 't');
+        text.setAttribute('xml:space', 'preserve');
+        text.textContent = value;
+
+        run.appendChild(properties);
+        run.appendChild(text);
+        inline.appendChild(run);
+      }
+
+      addRun(headingText, true);
+      addRun(
+        `${headingText && detailsText ? '\n' : ''}${detailsText}`,
+        false
+      );
+      cell.appendChild(inline);
+    }
+
     function clearRange(startColumn, endColumn, startRow, endRow) {
       function lettersToNumber(letters) {
         return [...letters].reduce(
@@ -2637,6 +2844,17 @@ async function generateQuotationExcel() {
       row.setAttribute('customHeight', '1');
     }
 
+    function setRowHidden(rowIndex, hidden) {
+      const row = getOrCreateRow(rowIndex);
+      if (hidden) {
+        row.setAttribute('hidden', '1');
+        row.setAttribute('ht', '0');
+        row.setAttribute('customHeight', '1');
+      } else {
+        row.removeAttribute('hidden');
+      }
+    }
+
     function getOrCreateMergeCells() {
       let mergeCells =
         xml.getElementsByTagNameNS(ns, 'mergeCells')[0];
@@ -2663,11 +2881,14 @@ async function generateQuotationExcel() {
       return mergeCells;
     }
 
-    function removeMergesTouchingRows(startRow, endRow) {
+    function removeMergesInRange(startColumn, endColumn, startRow, endRow) {
       const mergeCells = getOrCreateMergeCells();
       const merges = [
         ...mergeCells.getElementsByTagNameNS(ns, 'mergeCell')
       ];
+
+      const firstColumn = columnNumber(`${startColumn}1`);
+      const lastColumn = columnNumber(`${endColumn}1`);
 
       merges.forEach(merge => {
         const reference = merge.getAttribute('ref') || '';
@@ -2675,7 +2896,15 @@ async function generateQuotationExcel() {
         const firstRow = rowNumber(parts[0]);
         const lastRow = rowNumber(parts[1] || parts[0]);
 
-        if (firstRow <= endRow && lastRow >= startRow) {
+        const mergeFirstColumn = columnNumber(parts[0]);
+        const mergeLastColumn = columnNumber(parts[1] || parts[0]);
+
+        if (
+          firstRow <= endRow &&
+          lastRow >= startRow &&
+          mergeFirstColumn <= lastColumn &&
+          mergeLastColumn >= firstColumn
+        ) {
           mergeCells.removeChild(merge);
         }
       });
@@ -2686,6 +2915,95 @@ async function generateQuotationExcel() {
           mergeCells.getElementsByTagNameNS(ns, 'mergeCell').length
         )
       );
+    }
+
+    function ensureA4PrintSettings(
+      lastPrintRow,
+      allowMultiplePages = false
+    ) {
+      const worksheet = xml.documentElement;
+
+      let sheetPr = xml.getElementsByTagNameNS(ns, 'sheetPr')[0];
+      if (!sheetPr) {
+        sheetPr = xml.createElementNS(ns, 'sheetPr');
+        const dimension = xml.getElementsByTagNameNS(ns, 'dimension')[0];
+        if (dimension) worksheet.insertBefore(sheetPr, dimension);
+        else worksheet.insertBefore(sheetPr, worksheet.firstChild);
+      }
+
+      let pageSetUpPr =
+        sheetPr.getElementsByTagNameNS(ns, 'pageSetUpPr')[0];
+      if (!pageSetUpPr) {
+        pageSetUpPr = xml.createElementNS(ns, 'pageSetUpPr');
+        sheetPr.appendChild(pageSetUpPr);
+      }
+      pageSetUpPr.setAttribute('fitToPage', '1');
+      pageSetUpPr.setAttribute(
+        'autoPageBreaks',
+        allowMultiplePages ? '1' : '0'
+      );
+
+      let pageMargins =
+        xml.getElementsByTagNameNS(ns, 'pageMargins')[0];
+      if (!pageMargins) {
+        pageMargins = xml.createElementNS(ns, 'pageMargins');
+        worksheet.appendChild(pageMargins);
+      }
+      pageMargins.setAttribute('left', '0.4');
+      pageMargins.setAttribute('right', '0.4');
+      pageMargins.setAttribute('top', '0.4');
+      pageMargins.setAttribute('bottom', '0.4');
+      pageMargins.setAttribute('header', '0.2');
+      pageMargins.setAttribute('footer', '0.2');
+
+      let pageSetup = xml.getElementsByTagNameNS(ns, 'pageSetup')[0];
+      if (!pageSetup) {
+        pageSetup = xml.createElementNS(ns, 'pageSetup');
+        const headerFooter =
+          xml.getElementsByTagNameNS(ns, 'headerFooter')[0];
+        const drawing = xml.getElementsByTagNameNS(ns, 'drawing')[0];
+        if (headerFooter) worksheet.insertBefore(pageSetup, headerFooter);
+        else if (drawing) worksheet.insertBefore(pageSetup, drawing);
+        else worksheet.appendChild(pageSetup);
+      }
+      pageSetup.setAttribute('paperSize', '9');
+      pageSetup.setAttribute('orientation', 'portrait');
+      pageSetup.setAttribute('fitToWidth', '1');
+      pageSetup.setAttribute(
+        'fitToHeight',
+        allowMultiplePages ? '0' : '1'
+      );
+      pageSetup.removeAttribute('scale');
+
+      if (
+        workbookXml &&
+        !workbookXml.querySelector('parsererror')
+      ) {
+        const workbookRoot = workbookXml.documentElement;
+        let definedNames =
+          workbookXml.getElementsByTagNameNS(ns, 'definedNames')[0];
+
+        if (!definedNames) {
+          definedNames = workbookXml.createElementNS(ns, 'definedNames');
+          const calcPr =
+            workbookXml.getElementsByTagNameNS(ns, 'calcPr')[0];
+          if (calcPr) workbookRoot.insertBefore(definedNames, calcPr);
+          else workbookRoot.appendChild(definedNames);
+        }
+
+        let printArea = [
+          ...definedNames.getElementsByTagNameNS(ns, 'definedName')
+        ].find(name => name.getAttribute('name') === '_xlnm.Print_Area');
+
+        if (!printArea) {
+          printArea = workbookXml.createElementNS(ns, 'definedName');
+          printArea.setAttribute('name', '_xlnm.Print_Area');
+          printArea.setAttribute('localSheetId', '0');
+          definedNames.appendChild(printArea);
+        }
+
+        printArea.textContent = `Sheet1!$A$1:$I$${lastPrintRow}`;
+      }
     }
 
     function addMerge(reference) {
@@ -2749,10 +3067,12 @@ async function generateQuotationExcel() {
       throw new Error('Please enter the surveyor mobile number before exporting.');
     }
 
-    const total = items.reduce(
-      (sum, item) => sum + (Number(item.price) || 0),
-      0
-    );
+    const total = hasOptions
+      ? 0
+      : items.reduce(
+          (sum, item) => sum + (Number(item.price) || 0),
+          0
+        );
 
     // Fill only designated cells in the supplied workbook.
     setText('H8', 'Quotation No:');
@@ -2783,6 +3103,7 @@ async function generateQuotationExcel() {
 
     const firstItemRow = isBuilder ? 27 : 26;
     const lastItemRow = isBuilder ? 39 : 42;
+    const totalRow = isBuilder ? 40 : 43;
     const availableRows = lastItemRow - firstItemRow + 1;
 
     if (items.length > availableRows) {
@@ -2792,10 +3113,13 @@ async function generateQuotationExcel() {
       );
     }
 
+    removeMergesInRange('A', 'G', firstItemRow, lastItemRow);
+
     for (let row = firstItemRow; row <= lastItemRow; row++) {
       setText(`A${row}`, '');
       setText(`H${row}`, '');
       setText(`I${row}`, '');
+      setRowHidden(row, false);
       setRowHeight(row, isBuilder ? 15.75 : 15.6);
     }
 
@@ -2838,22 +3162,38 @@ async function generateQuotationExcel() {
 
       const heading =
         String(item.title || 'Quoted Works').trim();
+      const optionHeading = item.optionGroup && item.optionNumber
+        ? `OPTION ${item.optionNumber}`
+        : '';
       const details =
         String(item.description || '').trim();
 
-      const description = wrapForTemplate(
-        [heading, details].filter(Boolean).join('\n'),
-        68
+      const descriptionWidth = item.optionGroup ? 58 : 68;
+      const wrappedHeading = wrapForTemplate(
+        [optionHeading, heading].filter(Boolean).join('\n'),
+        descriptionWidth
       );
+      const wrappedDetails = wrapForTemplate(
+        details,
+        descriptionWidth
+      );
+      const description = [wrappedHeading, wrappedDetails]
+        .filter(Boolean)
+        .join('\n');
 
       const measurement = wrapForTemplate(
         item.measurement || '',
         11
       );
 
-      setText(`A${row}`, description);
+      setQuotationDescription(
+        `A${row}`,
+        wrappedHeading,
+        wrappedDetails
+      );
       setText(`H${row}`, measurement);
       setNumber(`I${row}`, Number(item.price) || 0);
+      addMerge(`A${row}:G${row}`);
 
       setCellStyle(`A${row}`, wrappedDetailsStyle);
       setCellStyle(`H${row}`, wrappedMeasurementStyle);
@@ -2864,11 +3204,30 @@ async function generateQuotationExcel() {
         1
       );
 
+      const lineHeight = item.optionGroup ? 19 : 17;
+      const minimumHeight = item.optionGroup ? 72 : 30;
+      const maximumHeight = item.optionGroup ? 132 : 96;
+
       setRowHeight(
         row,
-        Math.min(120, Math.max(34, lineCount * 16))
+        Math.min(
+          maximumHeight,
+          Math.max(
+            minimumHeight,
+            lineCount * lineHeight + 10
+          )
+        )
       );
     });
+
+    // Collapse unused quotation rows so the export has no large blank gaps.
+    for (
+      let row = firstItemRow + items.length;
+      row <= lastItemRow;
+      row++
+    ) {
+      setRowHidden(row, true);
+    }
 
     if (stylesXml) {
       zip.file(
@@ -2878,18 +3237,55 @@ async function generateQuotationExcel() {
     }
 
     if (isBuilder) {
-      // Preserve the builder template style while removing VAT references.
+      // Builder quotation: keep the total inside the main quotation box and
+      // remove the separate VAT panel and its unused rows.
       setText('A40', '');
-      setText('H42', 'TOTAL');
-      setNumber('I42', total);
+      setText('H40', hasOptions ? '' : 'TOTAL');
+      if (hasOptions) setText('I40', '');
+      else setNumber('I40', total);
+      setRowHidden(40, hasOptions);
+      if (!hasOptions) setRowHeight(40, 22);
+
+      setText('H42', '');
+      setText('I42', '');
+      setText('A43', '');
       setText('H43', '');
       setText('I43', '');
+      setText('A44', '');
       setText('H44', '');
       setText('I44', '');
+
+      removeMergesInRange('A', 'I', 42, 44);
+      addMerge('A42:I42');
+      setRowHeight(41, 6);
+      setRowHidden(43, true);
+      setRowHidden(44, true);
     } else {
       setText('I25', 'Price\n(incl. VAT @ 13.5%)');
-      setText('H44', 'TOTAL INC. VAT');
-      setNumber('I44', total);
+      setText(`H${totalRow}`, hasOptions ? '' : 'TOTAL INC. VAT');
+      if (hasOptions) setText(`I${totalRow}`, '');
+      else setNumber(`I${totalRow}`, total);
+      setRowHidden(totalRow, hasOptions);
+      if (!hasOptions) setRowHeight(totalRow, 22);
+
+      setText('H44', '');
+      setText('I44', '');
+      setRowHidden(44, true);
+    }
+
+    ensureA4PrintSettings(
+      isBuilder ? 50 : 51,
+      hasOptions
+    );
+
+    if (
+      workbookXml &&
+      !workbookXml.querySelector('parsererror')
+    ) {
+      zip.file(
+        workbookPath,
+        new XMLSerializer().serializeToString(workbookXml)
+      );
     }
 
     zip.file(sheetPath, new XMLSerializer().serializeToString(xml));
@@ -2911,7 +3307,8 @@ async function generateQuotationExcel() {
 
     const filename =
       `${safeCustomer}_${safeQuote}_` +
-      `${dateForFilename(quotationDateValue)}_Quotation.xlsx`;
+      `${dateForFilename(quotationDateValue)}_` +
+      `${hasOptions ? 'Options_Quotation' : 'Quotation'}.xlsx`;
 
     const url = URL.createObjectURL(resultBlob);
     const anchor = document.createElement('a');
